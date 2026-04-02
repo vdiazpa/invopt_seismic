@@ -1,0 +1,12 @@
+# Python
+
+__pycache__/
+*.pyc
+
+#VS Code 
+.vscode/
+
+#Old Outputs
+/old/
+
+/invopt_seismic/datasets/

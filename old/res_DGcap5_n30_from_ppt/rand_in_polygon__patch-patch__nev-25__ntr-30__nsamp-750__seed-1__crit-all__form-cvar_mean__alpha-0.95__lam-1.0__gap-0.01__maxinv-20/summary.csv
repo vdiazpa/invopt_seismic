@@ -1,2 +1,0 @@
-dataset,patch,n_events,n_trials,n_samples,seed,crit_mode,form,mipgap,max_invest,hard_frac,alpha,lam,tau,inv_cost,expected_shed,cvar,n_gen_inv,n_load_inv,n_trans_inv,n_scenarios,timestamp
-rand_in_polygon,patch,25,30,750,1,all,cvar_mean,0.01,20,0.5,0.95,1.0,0.1,18.5,3192.1987490516935,3411.0220476888526,3,2,0,750,2026-03-03T23:08:52
