@@ -1,15 +1,12 @@
 # scenario_utils.py
-from matplotlib import lines
 
-from ..data_utils.structures import as_damage_data, DamageData, GridData, CriticalAssets
+from ..data_utils.structures import as_damage_data
 from pathlib import Path
-import matplotlib.pyplot as plt
 import pandas as pd
 import pickle
 import random
 import math
 import re
-
 
 def parse_branch_entry(v):
     if pd.isna(v) or re.sub(r"\s+", "", v) =="None":
@@ -148,6 +145,11 @@ def generate_from_MC(
     nodes_load  = data['nodes_load']
     trans_nodes = data['trans_nodes']
 
+    ds_gens   = {}
+    ds_loads  = {}
+    ds_trans  = {}
+    ds_branch = {}
+
     print(f"Loading damage states from files for {len(event_ids)} realizations and {num_trials} trials each")
 
     samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
@@ -170,10 +172,11 @@ def generate_from_MC(
 
             return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
-    samples_df = {}
-
+    
     total = len(event_ids) * num_trials
+    samples_df = {}
     count = 0
+
     for event in event_ids:
         for trial in range(num_trials):
             
@@ -233,13 +236,150 @@ def generate_from_MC(
         ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
         ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
 
-        if cache_path is not None:
-            with open(cache_path, 'wb') as f:
-                pickle.dump((ds_gens, ds_loads, ds_trans, ds_branch), f, protocol=pickle.HIGHEST_PROTOCOL)
+    if cache_path is not None:
+        with open(cache_path, 'wb') as f:
+            pickle.dump((ds_gens, ds_loads, ds_trans, ds_branch), f, protocol=pickle.HIGHEST_PROTOCOL)
 
-            print(f"Saved damage states to cache: {cache_path}")
+        print(f"Saved damage states to cache: {cache_path}")
 
-        return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
+    return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
+
+def generate_from_bernoulli(
+    data: dict, 
+    num_trials:  int = None,   # number of trials per eartquake to consider
+    event_ids:   list= None,   # list w. earthquake ID numbers to consider
+    patch: str = "",
+    by_component: bool=False, 
+    cache_dir: str=None,
+    cache_tag: str=None,
+    use_cache: bool=True,
+):
+    
+    gens  = data['gens']
+    lines = data['lines']
+    nodes_load  = data['nodes_load']
+    trans_nodes = data['trans_nodes']
+
+    ds_gens   = {}
+    ds_loads  = {}
+    ds_trans  = {}
+    ds_branch = {}
+
+    print(f"Loading damage states from files for {len(event_ids)} realizations and {num_trials} trials each")
+
+    samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
+
+    cache_path = None
+    if cache_dir is not None:
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
+
+        if cache_tag is None:
+            cache_tag = f"files_events{event_ids}_trials{num_trials}"
+
+        cache_path = Path(cache_dir) / f"ds_{cache_tag}.pkl"
+
+        if use_cache and cache_path.exists():
+            with open(cache_path, 'rb') as f:
+                ds_gens, ds_loads, ds_trans, ds_branch = pickle.load(f)
+            print(f"Loaded damage states from cache: {cache_path}")
+
+            return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
+
+
+    
+    total = len(event_ids) * num_trials
+    samples_df = {}
+    count = 0
+
+    for event in event_ids:
+        for trial in range(num_trials):
+            
+            count +=1
+            print(f"[{count}/{total}] Parsing EQ event {event}, trial {trial} ...")
+            fname = f"240busWECC_2018_PSS_real{event}{patch}_combined_trial{trial}.csv"
+            fpath = samples_folder / fname
+
+            if not fpath.exists():
+                print(f"File not found: {fpath}, skipping ...", flush=True)
+                continue
+
+            try:
+                df = pd.read_csv(fpath)
+            except Exception as e:
+                print(f"Error reading {fpath}: {e}")
+                continue
+
+            samples_df[f"event{event}_trial{trial}"] = df
+
+    for sc, df in samples_df.items():
+        if df.empty:
+            continue
+
+        df = df.copy()
+        df.columns = df.columns.str.strip()
+
+        branch_failures, load_failures, gen_failures = [], [], []
+        
+        if "Branch_fails" in df.columns:
+            for v in df["Branch_fails"].dropna():
+                key = parse_branch_entry(v)
+                if key != None and key in lines:
+                    branch_failures.append(key)
+
+        if "Xfmr_fails" in df.columns:
+            for v in df["Xfmr_fails"].dropna():
+                key = parse_xfmr_entry(v)
+                if key != None and key in lines:
+                    branch_failures.append(key)
+
+        if "Load_fails" in df.columns:
+            for val in df["Load_fails"].dropna():
+                s = str(val).strip()
+                if s not in ("", "None"):
+                    load_failures.append(s)
+        load_failures_strp = [int(x.strip("[]")) for x in load_failures]
+
+        if "Gen_fails" in df.columns:
+            for v in df["Gen_fails"].dropna():
+                key = parse_gen_entry(v)
+                if key != None: 
+                    gen_failures.append(key)
+
+        ds_branch[sc] = {l: int(l in branch_failures)    for l in lines}
+        ds_loads[sc]  = {n: int(n in load_failures_strp) for n in nodes_load}
+        ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
+        ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
+
+    if cache_path is not None:
+        with open(cache_path, 'wb') as f:
+            pickle.dump((ds_gens, ds_loads, ds_trans, ds_branch), f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print(f"Saved damage states to cache: {cache_path}")
+
+    prob_loads = {node: 0 for node in nodes_load}
+    prob_lines = {line: 0 for line in lines}
+    prob_gens  = {gen: 0  for gen  in gens}
+
+    for key in ds_branch: 
+        for line in lines:
+            if ds_branch[key][line] == 1:
+                prob_lines[line] += 1
+        
+    for key in ds_gens: 
+        for gen in gens:
+            if ds_gens[key][gen] == 1:
+                prob_gens[gen] += 1
+
+    for key in ds_loads: 
+        for load in nodes_load:
+            if ds_loads[key][load] == 1:
+                prob_loads[load] += 1
+
+# ds_branch = {sc1: {line1: yes/no, line2: yes/no, ...}, sc2: {...}, ...}
+
+
+
+
 
 
 def scenario_generator(
@@ -318,7 +458,7 @@ def scenario_generator(
             ds_trans[sc]  = {t: int(t in dam_trans_samp)  for t in trans_nodes}      
             ds_branch[sc] = {l: int(l in dam_branch_samp) for l in lines}
 
-            return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
+        return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
 
     elif mode == "rand_in_polygon":
