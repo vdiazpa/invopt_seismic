@@ -251,7 +251,7 @@ def generate_from_bernoulli(
     num_trials:  int = None,   # number of trials per eartquake to consider
     event_ids:   list= None,   # list w. earthquake ID numbers to consider
     patch: str = "",
-    by_component: bool=False, 
+    by_type: bool=False, 
     cache_dir: str=None,
     cache_tag: str=None,
     use_cache: bool=True,
@@ -350,11 +350,11 @@ def generate_from_bernoulli(
         ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
         ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
 
-    if by_component == False:   #Create probability dict per component type. 
+    if by_type==False:   #Create probability dict per component type. 
         
         prob_loads = {node: 0 for node in nodes_load}
         prob_lines = {line: 0 for line in lines}
-        prob_gens  = {gen: 0  for gen  in gens}
+        prob_gens  = {gen:  0 for gen  in gens}
 
         for key in ds_branch: 
             for line in lines:
@@ -377,7 +377,7 @@ def generate_from_bernoulli(
 
         ds_gens, ds_loads, ds_trans, ds_branch = {}, {}, {}, {}
 
-        for i in range(len(num_rand_sc)): 
+        for i in range(num_rand_sc): 
             sc = f"sc_{i}"
             ds_loads[sc]  = {load: np.random.binomial(1, p, 1)[0] for load, p in prob_loads.items()}
             ds_branch[sc] = {line: np.random.binomial(1, p, 1)[0] for line, p in prob_lines.items()}
