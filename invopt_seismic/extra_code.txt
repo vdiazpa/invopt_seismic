@@ -1,0 +1,677 @@
+
+
+# ds_g_f, ds_l_f, ds_t_f, ds_b_f = scenario_generator(mode="files", data=data, event_ids=event_ids, 
+#                                                     num_trials=num_trials_files, seed = seed, 
+#                                                     cache_dir=cache_dir,
+#                                                     cache_tag=f"files_e25_tr{num_trials_files}_seed{seed}", 
+                                                    # use_cache=True)
+                                                    
+# crit_gens, crit_loads, crit_trans = critical_assets_identifier(
+#     mode = "from_damaged", 
+#     data=data, 
+#     ds_gens=ds_g_f, ds_loads=ds_l_f, ds_trans=ds_t_f,
+#     frac_gens=0.25, frac_loads=0.25, frac_trans=0.25)
+
+
+
+   # # call scenario_generator using random for validation. ``
+# ds_g_r, ds_l_r, ds_t_r, ds_b_r = scenario_generator(mode="rand_all", 
+#                                                     data=data,
+#                                                     num_rand_sc=len(event_ids)*num_trials_files, 
+#                                                     frac_gens = 0.1, frac_branch=0.1,
+#                                                     frac_loads=0.1, frac_trans=0.1,
+#                                                     use_avg_k=False,
+#                                                     seed=seed)
+   
+   
+      # def plot_failure_frequencies(ds_asset, 
+#                              all_assets, 
+#                              col_name="Asset",
+#                              title_prefix="Asset", 
+#                              replace_underscores=False,
+#                              num_scenarios=None):
+#     """
+#     ds_asset: dict of scenario_name -> {asset: 0/1}
+#     all_assets: iterable of ALL asset IDs (generators, loads, branches, etc.)
+#     col_name: name for the asset column in output DataFrame
+#     title_prefix: used in the plot title
+#     replace_underscores: whether to replace '_' by '-'
+#     num_scenarios: used only for the title label
+#     """
+
+#     # --- Collect all failure events across all scenarios ---
+#     all_fail_events = []
+#     for _, state_dict in ds_asset.items():
+#         failed = [a for a, st in state_dict.items() if st == 1]
+#         all_fail_events.extend(failed)
+
+#     # --- Build frequency table including zero-failure assets ---
+#     freq_series = pd.Series(index=list(all_assets), dtype=int).fillna(0)
+
+#     if all_fail_events:
+#         counts = pd.Series(all_fail_events).value_counts()
+#         freq_series.loc[counts.index] = counts.values
+
+#     freq_df = freq_series.reset_index()
+#     freq_df.columns = [col_name, "Count"]
+#     freq_df = freq_df.sort_values(by="Count", ascending=False)
+
+#     # --- Plot ---
+#     plt.figure(figsize=(12, 6))
+#     plt.bar(range(len(freq_df)), freq_df["Count"])
+
+#     # X-axis labels
+#     labels = freq_df[col_name].astype(str).tolist()
+#     if replace_underscores:
+#         labels = [l.replace("_", "-") for l in labels]
+
+#     plt.xticks(range(len(freq_df)), labels, rotation=90)
+
+#     # Title
+#     if num_scenarios is None:
+#         title = f"{title_prefix} Failure Frequencies"
+#     else:
+#         title = f"{title_prefix} Failure Frequencies Across {num_scenarios} Scenarios"
+
+#     plt.title(title)
+#     plt.xlabel(col_name)
+#     plt.ylabel("Failure Count")
+#     plt.tight_layout()
+#     plt.show()
+
+#     return freq_df
+
+
+
+            # all_load_events = []                    # Flatten all load failures across trials
+        # for _, load_state in ds_loads.items():
+        #     damaged_loads = [n for n, state in load_state.items() if state == 1]
+        #     all_load_events.extend(damaged_loads)
+            
+        # if all_load_events:
+        #     freq_df_load = pd.Series(all_load_events, name="Load").value_counts().reset_index()
+        #     freq_df_load.columns = ['Load', 'Count']
+        #     freq_df_load = freq_df_load.sort_values(by='Count', ascending=False)
+        # else: 
+        #     freq_df_load = pd.DataFrame(columns=['Load', 'Count'])   
+        # all_gen_events = []
+        # for _, gen_state in ds_gens.items():
+        #     damaged_gens = [g for g, state in gen_state.items() if state == 1]
+        #     all_gen_events.extend(damaged_gens)
+            
+        # if all_gen_events:
+        #     freq_df_gen = pd.Series(all_gen_events, name="Generator").value_counts().reset_index()
+        #     freq_df_gen.columns = ['Generator', 'Count']
+        #     freq_df_gen = freq_df_gen.sort_values(by='Count', ascending=False)
+        # else: 
+        #     freq_df_gen = pd.DataFrame(columns=['Generator', 'Count'])
+
+                # all_branch_events = []
+        # for _, branch_state in ds_branch.items():
+        #     damaged_branches = [g for g, state in branch_state.items() if state == 1]
+        #     all_branch_events.extend(damaged_branches)
+            
+        # if all_branch_events:
+        #     freq_df_branch = pd.Series(all_branch_events, name="Branch").value_counts().reset_index()
+        #     freq_df_branch.columns = ['Branch', 'Count']
+        #     freq_df_branch = freq_df_branch.sort_values(by='Count', ascending=False)
+        # else: 
+        #     freq_df_branch = pd.DataFrame(columns=['Branch', 'Count'])
+
+#Data parser
+
+
+                    # s = str(v).strip()
+                    # if s not in ("", "None"):
+                    #     key = _parse_gen_entry(v)
+                    #     gen_failures.append(f"{key[0]}_{key[1]}")
+
+                    # if key is None:
+                    #     continue
+                    # idx = counts_gen.get(key, 0)
+                    # counts_gen[key] = idx + 1
+                    # gen_failures.append(f"{key[0]}_{key[1]}_{idx}")
+
+                # if s in ("", "None"):
+                #     return None
+                # s = re.sub(r'^[\(\{\[]\s*|\s*[\)\}\]]$', '', s)
+                # parts = s.split()
+                # if len(parts) >= 2:
+                #     bus_match = re.search(r"\d+", parts[0])
+                #     bus = bus_match.group(0) if bus_match else parts[0]
+                #     fuel = parts[1].strip(", '\"[]()")
+                #     return (bus, fuel)
+                # m = re.search(r"(\d+)\D+([A-Za-z0-9_-]+)", s)
+                # if m:
+                #     bus = m.group(1)
+                #     fuel = m.group(2).strip(", '\"[]()")
+                #     return (bus, fuel)
+                # return None
+
+###################################################################################################################################################################
+#                                                                                                                            ###   miniWECC model build ##
+###################################################################################################################################################################    
+
+
+#Cvar Objective
+
+
+    # for obj in list(ef_model.component_map(Objective).values()):
+    #     ef_model.del_component(obj)
+
+    # def new_objective_rule(m): 
+    #     invest_term = sum(prob * ef.local_scenarios[sname].InvestCost for sname in all_scenario_names)
+    #     cvar_term = m.eta + (1.0 / (1.0 - alpha)) * sum( prob * m.xi[sname] for sname in all_scenario_names)
+    #     return invest_term + lam * cvar_term
+    # ef_model.EF_Obj = Objective(rule=new_objective_rule, sense=minimize)
+
+# # Read Data
+# gen_data  = pd.read_csv("C:\\Users\\vdiazpa\\Documents\\SEISMIC\\miniWECC_data\\gen_data.csv", header=0)
+# bus_data  = pd.read_csv("C:\\Users\\vdiazpa\\Documents\\SEISMIC\\miniWECC_data\\bus_data.csv", header=0)
+# line_data = pd.read_csv("C:\\Users\\vdiazpa\\Documents\\SEISMIC\\miniWECC_data\\branch_data.csv", header=0)
+# gen_data['bus']   = gen_data['bus'].apply(lambda x: int(x))   
+# bus_data['bus_i'] = bus_data["bus_i"].apply(lambda x: int(x))      # Make sure bus IDs are int
+
+# # Sets and Parameters
+# all_nodes = bus_data["bus_i"]
+# fuel_type = list(set([str(x) for x in gen_data["fuel_type"]]))
+
+# # Add branch name for miniWECC tbus_fbus_circuit
+# line_data['circuit'] = line_data.groupby(['fbus', 'tbus']).cumcount() # Created a unique ID for parallel lines
+# line_data['line_id'] = (line_data['fbus'].astype(str) + '_' + line_data['tbus'].astype(str) + '_' + line_data['circuit'].astype(str) )
+# lines = line_data['line_id'].tolist()
+
+# # Brnch parameters
+# line_endpoints = dict(zip(line_data['line_id'], zip(line_data['fbus'], line_data['tbus'])))
+# line_reactance = dict(zip(line_data['line_id'], line_data['x'].astype(float)))
+# line_capacity  = dict(zip(line_data['line_id'], line_data['rateA'].astype(float)))
+
+# #Add gen name: bus_fueltype_count for miniWECC
+# gen_data['GEN UID']  = ['' for _ in range(len(gen_data))]
+# counts = { (b, t): 1 for b in all_nodes for t in fuel_type }
+# for g in range(len(gen_data)):
+#     gen_name = ''
+#     bus  = int(gen_data.at[g, 'bus'])
+#     type = str(gen_data.at[g, 'fuel_type'])
+#     gen_name = str(bus) + '_' + str(type) + '_' + str(counts[(bus, type)])
+#     counts[(bus, type)] += 1
+#     gen_data.at[g, 'GEN UID'] = gen_name
+# gens = gen_data["GEN UID"]
+# unit_capacity  = { gen_data['GEN UID'][i]: gen_data['Pmax'][i] for i in range(len(gens))  }
+
+# hardening_cost = {} # In millions
+# for i in range(len(all_nodes)): 
+#     if 0 <= bus_data['baseKV'][i] <= 69:
+#         hardening_cost[bus_data['bus_i'][i]] = 9.4
+
+#     elif 69 < bus_data['baseKV'][i] <= 115:
+#         hardening_cost[bus_data['bus_i'][i]] = 10.6
+
+#     elif 115 < bus_data['baseKV'][i] <= 138:
+#         hardening_cost[bus_data['bus_i'][i]] = 11.6
+
+#     elif 138 < bus_data['baseKV'][i] <= 161:
+#         hardening_cost[bus_data['bus_i'][i]] = 12.6
+
+#     elif 161 < bus_data['baseKV'][i] <= 230:
+#         hardening_cost[bus_data['bus_i'][i]] = 14.5
+
+#     elif 230 < bus_data['baseKV'][i] <= 345:
+#         hardening_cost[bus_data['bus_i'][i]] = 21.1
+
+#     elif 345 < bus_data['baseKV'][i] <= 500:
+#         hardening_cost[bus_data['bus_i'][i]] = 30.8
+
+# # Create line-to-bus (incidence matrix) & Bus-to-unit (adjacency matrix) Maps
+# line_to_bus = pd.DataFrame(0, index=lines, columns=all_nodes, dtype = int)
+# bus_to_unit = pd.DataFrame(0, index=gens , columns=all_nodes, dtype = int)
+
+# for lid, (i,j) in line_endpoints.items():
+#     line_to_bus.loc[lid, i] = -1
+#     line_to_bus.loc[lid, j] =  1
+
+# for i in range(len(gens)):
+#     bus_to_unit.loc[(gen_data["GEN UID"][i], gen_data["bus"][i])] = 1
+
+# #Create nodes with load set and demand dict
+# nodes_noload = []
+# nodes_load   = []
+# demand       = {}
+
+# for i in range(len(all_nodes)):
+#     if bus_data["type"][i] == 1.0 and bus_data["Pd"][i] != 0:
+#         nodes_load.append(bus_data["bus_i"][i])
+#         demand[bus_data["bus_i"][i]] = abs(bus_data["Pd"][i])
+
+#     else:
+#         demand[bus_data["bus_i"][i]] = 0
+#         nodes_noload.append(bus_data["bus_i"][i])
+# ref_bus = max(demand, key=demand.get)  # Reference bus has higheest load
+
+# # Dictionary to map direction of line respect to bus
+# line_to_bus_dict = {(lid, b): line_to_bus.loc[lid, b] for lid in lines for b in all_nodes if line_to_bus.loc[lid, b] != 0}
+
+# gens_by_bus = {}
+# for bus in bus_to_unit.columns:
+#     gbb   = []
+#     for g in bus_to_unit.index:
+#         if bus_to_unit.loc[g,bus] == 1:
+#             gbb.append(g)
+#         if len(gbb) !=0:
+#             gens_by_bus[bus] = tuple(gbb)
+
+# lines_by_bus = { b: tuple(l for l in lines if (l, b) in line_to_bus_dict) for b in all_nodes }     #bus: tuple(lines_adjacent)
+
+# # Dictionary to map nodes to lines adjacent & count number of lines adjacent to node
+# lines_adj = {}
+# bus_nlines_adj= {}
+# for col in line_to_bus.columns:
+#     lines_adj[col] = []
+#     bus_nlines_adj[col] = 0
+#     for idx, line in enumerate(line_to_bus.index):
+#         if line_to_bus.loc[line, col] != 0:
+#             bus_nlines_adj[col] +=1
+#             lines_adj[col].append(lines[idx])
+
+# # Dictionary to map units to buses
+# unit_to_bus_dict = {}  
+# gen_buses = []
+# for idx, unit in enumerate(bus_to_unit.index):  
+#     for col in bus_to_unit.columns:  
+#         if bus_to_unit.loc[unit, col] != 0:
+#             unit_to_bus_dict[unit] = col  
+#             if col not in gen_buses:
+#                 gen_buses.append(col)
+
+# gen_data['num_conn'] = [ bus_nlines_adj[unit_to_bus_dict[gen]] for gen in gens ] # add column to gen dataframe with # of lines adjacent to gen bus
+
+# trans_nodes = set(all_nodes) - set(nodes_load) - set(gen_buses)
+
+# print("\nNumber of Load Buses:", len(nodes_load))
+# print("Number of Generators: ", len(gens))
+# print("Number of Transmission Nodes: ", len(trans_nodes), "\n")
+
+# samples_folder = r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share/data/Results/Dynamic_Simulations_Anchored/failure_times/"    
+# samples_df = {}
+# num_scenarios = 101
+
+# for i in range(0, num_scenarios):
+#     file_name_trial = '240busWECC_2018_PSS_real1_combined_trial' + str(i) + '.csv'
+#     fpath = os.path.join(samples_folder, file_name_trial)
+#     df = pd.read_csv(fpath)
+#     samples_df[i] = df
+
+# damaged_branches_by_trial, damaged_loads_by_trial, damaged_gens_by_trial = {}, {}, {}
+
+# for trial, df in samples_df.items():
+#     if df.empty:
+#         continue
+#     df = df.copy()
+#     df.columns = df.columns.str.strip()  # Remove leading/trailing whitespace from column names
+
+#     branch_failures, load_failures, gen_failures = [], [], []
+    
+#     def _parse_branch_entry(v):         # helper: normalize an entry to a (fbus, tbus) tuple of strings or None
+#         if pd.isna(v):
+#             return None
+#         if isinstance(v, (tuple, list)) and len(v) >= 2:
+#             return (str(v[0]).strip(), str(v[1]).strip())
+#         s = str(v).strip()
+#         if s == '' or s == 'None':
+#             return None
+#         nums = re.findall(r'\d+', s)
+#         if len(nums) >= 2:
+#             return (nums[0], nums[1])
+#         return None
+
+#     def _parse_gen_entry(v):           # helper: normalize Gen_fails entry to (bus, fuel_type) or None
+#         if pd.isna(v):
+#             return None
+#         if isinstance(v, (tuple, list)) and len(v) >= 2:
+#             bus = str(v[0]).strip()
+#             fuel = str(v[1]).strip().strip(", '\"[]()")
+#             return (bus, fuel)
+#         s = str(v).strip()
+#         if s == '' or s == 'None':
+#             return None
+        
+#         # remove surrounding parens/braces if present
+#         s = re.sub(r'^[\(\{\[]\s*|\s*[\)\}\]]$', '', s)
+#         parts = s.split()
+
+#         if len(parts) >= 2:
+#             bus_match = re.search(r'\d+', parts[0])
+#             bus = bus_match.group(0) if bus_match else parts[0]
+
+#             fuel = parts[1]
+#             fuel = fuel.strip(", '\"[]()")
+#             return (bus, fuel)
+        
+#         m = re.search(r'(\d+)\D+([A-Za-z0-9_-]+)', s)
+#         if m:
+#             bus = m.group(1)
+#             fuel = m.group(2).strip(", '\"[]()")
+#             return (bus, fuel)
+#         return None
+    
+#     counts = {}       # map (fbus,tbus) -> occurrence count
+#     counts_gen = {}   # map (bus,fuel) -> occurrence count
+
+#     if 'Branch_fails' in df.columns:
+#         for v in df['Branch_fails'].dropna():
+#             key = _parse_branch_entry(v)
+#             if key is None:
+#                 continue
+#             idx = counts.get(key, 0)
+#             counts[key] = idx + 1
+#             branch_failures.append(f"{key[0]}_{key[1]}_{idx}")
+
+#     if 'Load_fails' in df.columns:
+#         for val in df['Load_fails'].dropna():  # ---- Load failures ---#
+#             s = str(val).strip()
+#             if s != 'None' and s != '':
+#                 load_failures.append(s)
+
+#     load_failures_strp = [int(x.strip('[]')) for x in load_failures]
+
+#     if 'Gen_fails' in df.columns:
+#         for v in df['Gen_fails'].dropna():
+#             key = _parse_gen_entry(v)
+#             if key is None:
+#                 continue
+#             idx = counts_gen.get(key, 0)
+#             counts_gen[key] = idx + 1
+#             gen_failures.append(f"{key[0]}_{key[1]}_{idx}")
+
+#     damaged_branches_by_trial[trial] = branch_failures
+#     damaged_loads_by_trial[trial] = load_failures_strp
+#     damaged_gens_by_trial[trial] = gen_failures
+
+    #print(f"Trial {trial} MC results:\n  Branch failures: {branch_failures}...\n  Load failures: {load_failures_strp}...\n  Gen failures: {gen_failures}...\n")
+
+# # ========= 
+# from collections import Counter
+
+# # Flatten all branch failures across trials
+# all_branch_events = []
+# for trial, blist in damaged_branches_by_trial.items():
+#     for b in blist:
+#         parts = b.split('_')
+#         if len(parts) >= 2:
+#             base = f"{parts[0]}_{parts[1]}"
+#         else:
+#             base = b
+#         all_branch_events.append(base)
+
+# branch_counts = Counter(all_branch_events)
+# freq_df = pd.DataFrame(branch_counts.items(), columns=['Branch', 'Count'])
+# freq_df = freq_df.sort_values(by='Count', ascending=False)
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(len(freq_df)), freq_df['Count'])
+# plt.xlabel('Branch (fbus_tbus)')
+# plt.ylabel('Failure Count')
+# plt.title(f'Branch Failure Frequencies Across {num_scenarios} Samples')
+# plt.xticks(ticks=range(len(freq_df)),labels=[b.replace('_', '-') for b in freq_df['Branch']],rotation=90)
+# plt.tight_layout()
+# plt.show()
+
+# # Flatten all load failures across trials
+# all_load_events = []
+# for trial, llist in damaged_loads_by_trial.items():
+#     all_load_events.extend(llist)
+
+# load_counts = Counter(all_load_events)
+# freq_df_load = pd.DataFrame(load_counts.items(), columns=['Load', 'Count'])
+# freq_df_load = freq_df_load.sort_values(by='Count', ascending=False)
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(len(freq_df_load)), freq_df_load['Count'])
+# plt.xlabel('Load Bus')
+# plt.ylabel('Failure Count')
+# plt.title(f'Load Bus Failure Frequencies Across {num_scenarios} Samples')
+# plt.xticks(ticks=range(len(freq_df_load)),labels=[str(b) for b in freq_df_load['Load']],rotation=90)
+# plt.tight_layout()
+# plt.show()
+
+# all_gen_events = []
+# for trial, glist in damaged_gens_by_trial.items():
+#     for g in glist:
+#         parts = g.split('_')
+#         if len(parts) >= 2:
+#             base = f"{parts[0]}_{parts[1]}"
+#         else:
+#             base = g
+#         all_gen_events.append(base)
+# gen_counts = Counter(all_gen_events)
+# freq_df_gen = pd.DataFrame(gen_counts.items(), columns=['Generator', 'Count'])
+# freq_df_gen = freq_df_gen.sort_values(by='Count', ascending=False)
+
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(len(freq_df_gen)), freq_df_gen['Count'])
+# plt.xlabel('Generator (bus_fueltype)')
+# plt.ylabel('Failure Count')
+# plt.title(f'Generator Failure Frequencies Across {num_scenarios} Samples')
+# plt.xticks(ticks=range(len(freq_df_gen)),labels=[g.replace('_', '-') for g in freq_df_gen['Generator']],rotation=90)
+# plt.tight_layout()
+# plt.show()  
+
+# for file in os.listdir(samples_folder):
+#     if 'combined' in file: 
+#         trial = re.findall(r'\d+', file.split('_')[5])[0]
+#         print(f"Reading sample file for trial {trial}: {file}")
+#         fpath = os.path.join(samples_folder, file)
+#         if os.path.getsize(fpath) == 0:
+#             print(f"File {fpath} is empty. Skipping.")
+#             continue
+#         try:
+#             df = pd.read_csv(fpath)
+#         except Exception as e:
+#             print(f"Error reading {fpath}: {e}, skipping")
+#             continue
+#         samples_df[trial] = df
+#         if trial == '99':
+#             break
+
+# print(f"Number of sample files read: {len(samples_df)}")
+
+# clean_samp_dfs = {}
+# for trial, df in samples_df.items():
+#     df = df.copy()
+#     df.columns = df.columns.str.strip()  # Remove leading/trailing whitespace from column names
+
+#     if df.empty:
+#         clean_samp_dfs[trial] = df
+#         continue
+
+#     if 'Xfmr_fails' in df.columns:
+#         xf = df['Xfmr_fails'].astype(str).str.strip()
+#         keep_mask = xf.isna() | (xf == '') | (xf == 'None')
+#         df = df[keep_mask].copy()
+#         df = df.drop(columns=['Xfmr_fails'])
+
+#     clean_samp_dfs[trial] = df
+
+
+# branch_failures = []
+# load_failures   = []
+
+# nodes_load_str = set(str(x).strip() for x in nodes_load)
+
+# for trial, df in clean_samp_dfs.items():
+#     if df.empty:
+#         continue
+#     df = df.copy()
+#     df.columns = df.columns.str.strip()  # Remove leading/trailing whitespace from column names
+
+#     #---- Branch failures ---# 
+#     for val in df['Branch_fails'].dropna():
+#         s = str(val).strip()
+#         if s == '' or s =='None':
+#             continue
+#         nums = re.findall(r'\d+', s)
+#         if len(nums) ==2:
+#             branch_failures.append(tuple(nums))
+
+#     #---- Load failures ---# 
+#     for val in df['Load_fails'].dropna():
+#         s = str(val).strip()
+#         if s != 'None':
+#             load_failures.append(s)
+
+#     #  #---- Gen failures ---# 
+#     # for val in df['Gen_fails'].dropna():
+#     #     s = str(val).strip()
+#     #     if s != 'None':
+#     #         num = re.findall(r'\d+', s)
+#     #         print(type(s))
+
+# print(branch_failures[:5])  # Print first 5 for verification
+# print(load_failures[:5])    # Print first 5 for verification
+
+# # ========= 
+# from collections import Counter
+
+# branch_counts = Counter(branch_failures)
+# freq_df = pd.DataFrame(branch_counts.items(), columns=['Branch', 'Count'])
+# freq_df = freq_df.sort_values(by='Count', ascending=False)
+
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(len(freq_df)), freq_df['Count'], color='skyblue')
+# plt.xlabel('Branch (fbus, tbus)')
+# plt.ylabel('Failure Count')
+# plt.title('Branch Failure Frequencies Across Samples')
+# plt.xticks(ticks=range(len(freq_df)), labels=[f"{b[0]}-{b[1]}" for b in freq_df['Branch']], rotation=90)
+# plt.tight_layout()
+# plt.show()
+
+
+# load_counts = Counter(load_failures)
+# freq_df = pd.DataFrame(load_counts.items(), columns=['Load', 'Count'])
+# freq_df = freq_df.sort_values(by='Count', ascending=False)
+
+# plt.figure(figsize=(10, 6))
+# plt.bar(range(len(freq_df)), freq_df['Count'], color='skyblue')
+# plt.xlabel('Load Bus')
+# plt.ylabel('Failure Count')
+# plt.title('Load Bus Failure Frequencies Across Samples')
+# plt.xticks(ticks=range(len(freq_df)), labels=[f"{b[0]}-{b[1]}" for b in freq_df['Load']], rotation=90)
+# plt.tight_layout()
+# plt.show()
+
+
+
+###################################################################################################################################################################
+# ds_loads, ds_trans, ds_gens, ds_branch = {}, {}, {}, {}
+
+# # #Resilience Parameter
+# tau = 0.2
+# print("Resilience parameter: ", tau)
+
+
+# import mpisppy.utils.sputils as sputils
+# import time
+
+# objvals = []
+# investment_costs = []
+# ds_loads, ds_trans, ds_gens = {}, {}, {}
+# num_scenarios = 50
+
+# def scenario_creator(scenario_name, **kwargs):
+
+#     num_scenarios = int(kwargs.get("num_scenarios", 1)) # recieve extras passed via kwargs
+
+#     random.seed(int(scenario_name))                     # Set random seed equal to scenario name
+
+#     # --- Build current scenario's damage states --- 
+#     damaged_loads = crit_loads.copy()
+#     damaged_loads.extend(random.sample(list(set(nodes_load) - set(crit_loads)), 10))
+#     ds_loads[scenario_name] = {node: int(node in damaged_loads) for node in nodes_load}
+
+#     damaged_trans = crit_trans.copy()
+#     damaged_trans.extend(random.sample(list(trans_nodes - set(crit_trans)), 5))
+#     ds_trans[scenario_name] = {node: int(node in damaged_trans) for node in list(trans_nodes)}
+
+#     damaged_gens = crit_gens.copy()
+#     damaged_gens.extend(random.sample(list(set(gens) - set(crit_gens)), 15))
+#     ds_gens[scenario_name] = {gen: int(gen in damaged_gens) for gen in gens}
+
+#     #---- Build Pyomo model for this scenario ---
+#     model = build_inv_opt(damage_state_gens  = ds_gens[scenario_name], damage_state_trans = ds_trans[scenario_name], damage_state_loads = ds_loads[scenario_name], t = tau)
+
+#     # ---- Attach Non-anticipativity info ---damage_state_loads = ds_loads[scenario_name]
+#     sputils.attach_root_node(model, model.ObjectiveVal, [model.GenInvest, model.DistSSInvest, model.TransInvest])
+#     model._mpisppy_probability = 1.0 / float(num_scenarios)
+#     #model.write(f"test_{scenario_name}.lp", io_options={'symbolic_solver_labels': True})
+#     return model
+
+# from mpisppy.opt.ef import ExtensiveForm
+
+# options = {"solver": "gurobi", "MIPGap": 0.01}
+# all_scenario_names = [str(i) for i in range(1, num_scenarios + 1)]
+# ef = ExtensiveForm(options, all_scenario_names, scenario_creator, scenario_creator_kwargs={"num_scenarios": num_scenarios})
+# start_time = time.time()
+# results    = ef.solve_extensive_form(tee=True)
+# end_time   = time.time()
+# print(f"Runtime: {end_time - start_time:.2f} seconds")
+
+# objval = ef.get_objective_value()
+# print("Total Investment Cost")
+# print(f"{objval:.1f}")
+
+# # # objvals.append(objval)
+# # # avg_objval = sum(objvals) / len(objvals)
+# # # investment_costs.append(avg_objval)
+
+# # # plt.figure()
+# # # plt.plot([t * 100 for t in taus], investment_costs, marker='o')
+# # # plt.xlabel('% of Demand That Must Be Met')
+# # # plt.ylabel('Average Total Investment Cost')
+# # # plt.title('Average Investment Cost vs. % Demand Met')
+# # # plt.grid(True)
+# # # plt.show()
+
+# from pyomo.environ import value
+# variables = ef.gather_var_values_to_rank0()
+# invest_vars = ["GenInvest", "DistSSInvest", "TransInvest"]
+# printed = set()
+# for ((scen_name, var_name), var_value) in variables.items():
+#     if any((var_name.startswith(v) for v in invest_vars)):
+#         if var_name not in printed:
+#             print(f"{var_name} = {var_value}")
+#             printed.add(var_name)
+
+
+
+
+#Check the line-to-bus
+bad_inc = []
+for r in lines:
+    row = line_to_bus.loc[r]
+    if (row.eq(-1).sum() != 1) or (row.eq(1).sum() != 1):
+        bad_inc.append(r)
+print("bad incidence rows:", len(bad_inc))
+
+# Verification of Data input
+# A) every line must have exactly one -1 and one +1 in line_to_bus
+bad_lines = []
+for r in lines:
+    row = line_to_bus.loc[r]
+    if (row.eq(-1).sum() != 1) or (row.eq(1).sum() != 1):
+        bad_lines.append(r)
+print("Lines with bad incidence (must be 1 -1 and 1 +1):", len(bad_lines))
+
+# B) every generator must map to exactly one bus in bus_to_unit
+mapped = bus_to_unit.sum(axis=1)  # by row (each gen)
+bad_gens = mapped[mapped != 1]
+print("Generators not mapped to exactly one bus:", len(bad_gens))
+
+# C) basic totals (sanity)
+total_demand = sum(demand[i] for i in nodes_load)
+total_pmax   = sum(unit_capacity[g] for g in gens)
+print("Total demand:", total_demand, "  Total Pmax:", total_pmax)
+
+# D) any NaN or non-finite capacities/reactances?
+import math
+def bad_dict(d): return [(k,v) for k,v in d.items() if v is None or (isinstance(v,float) and not math.isfinite(v))]
+print("bad line_reactance entries:", len(bad_dict(line_reactance)))
+print("bad line_capacity entries:",  len(bad_dict(line_capacity)))
+print("bad unit_capacity entries:",  len(bad_dict(unit_capacity)))

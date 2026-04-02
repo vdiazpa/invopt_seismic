@@ -1,0 +1,28 @@
+=== DATASET INFO ===
+dataset        : rand_in_polygon
+patch          : patch
+n_events       : 25
+n_trials       : 15
+n_samples      : 375
+seed           : 1
+
+=== MODEL FORMULATION ===
+form           : risk_neutral
+crit_mode      : all
+hard_frac      : 0.5
+tau            : 0.1
+alpha          : 0.95
+lam            : 1.0
+
+=== SOLVER SETTINGS ===
+mipgap         : 0.01
+max_invest     : 10
+
+=== RESULTS SUMMARY ===
+Investment cost   : 7.0
+Expected shed     : 3447.737097893198
+CVaR              : 3799.6913800296597
+#Gen invested     : 0
+#Load invested    : 1
+#Trans invested   : 0
+#Scenarios        : 375

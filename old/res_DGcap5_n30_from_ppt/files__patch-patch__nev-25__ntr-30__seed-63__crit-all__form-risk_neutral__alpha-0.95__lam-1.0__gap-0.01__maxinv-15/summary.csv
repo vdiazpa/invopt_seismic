@@ -1,0 +1,2 @@
+dataset,patch,n_events,n_trials,n_samples,seed,crit_mode,form,mipgap,max_invest,hard_frac,alpha,lam,tau,inv_cost,expected_shed,cvar,n_gen_inv,n_load_inv,n_trans_inv,n_scenarios,timestamp
+files,patch,25,30,,63,all,risk_neutral,0.01,15,0.5,0.95,1.0,0.1,14.8,3771.0473320765077,5005.265832462779,1,2,0,750,2026-03-03T21:06:31

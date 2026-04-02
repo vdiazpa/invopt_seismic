@@ -1,0 +1,28 @@
+=== DATASET INFO ===
+dataset        : files
+patch          : patch
+n_events       : 25
+n_trials       : 15
+n_samples      : None
+seed           : 63
+
+=== MODEL FORMULATION ===
+form           : cvar_only
+crit_mode      : all
+hard_frac      : 0.5
+tau            : 0.1
+alpha          : 0.95
+lam            : 1.0
+
+=== SOLVER SETTINGS ===
+mipgap         : 0.01
+max_invest     : 5
+
+=== RESULTS SUMMARY ===
+Investment cost   : 3.5
+Expected shed     : 5006.61649884655
+CVaR              : 5203.050683395817
+#Gen invested     : 2
+#Load invested    : 0
+#Trans invested   : 0
+#Scenarios        : 375
