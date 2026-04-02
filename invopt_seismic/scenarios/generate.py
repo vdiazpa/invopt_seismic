@@ -247,6 +247,7 @@ def generate_from_MC(
 
 def generate_from_bernoulli(
     data: dict, 
+    num_rand_sc: int = None,
     num_trials:  int = None,   # number of trials per eartquake to consider
     event_ids:   list= None,   # list w. earthquake ID numbers to consider
     patch: str = "",
@@ -285,8 +286,6 @@ def generate_from_bernoulli(
             with open(cache_path, 'rb') as f:
                 ds_gens, ds_loads, ds_trans, ds_branch = pickle.load(f)
             print(f"Loaded damage states from cache: {cache_path}")
-
-            return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
     total = len(event_ids) * num_trials
     samples_df = {}
@@ -351,14 +350,8 @@ def generate_from_bernoulli(
         ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
         ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
 
-    if cache_path is not None:
-        with open(cache_path, 'wb') as f:
-            pickle.dump((ds_gens, ds_loads, ds_trans, ds_branch), f, protocol=pickle.HIGHEST_PROTOCOL)
-
-        print(f"Saved damage states to cache: {cache_path}")
-
-    if by_component == False: 
-        #Create probability dict per component type. 
+    if by_component == False:   #Create probability dict per component type. 
+        
         prob_loads = {node: 0 for node in nodes_load}
         prob_lines = {line: 0 for line in lines}
         prob_gens  = {gen: 0  for gen  in gens}
@@ -382,19 +375,15 @@ def generate_from_bernoulli(
         prob_lines = {line: prob_lines[line]/total for line in lines}
         prob_gens  = {gen:    prob_gens[gen]/total for gen  in gens}
 
-        ds_gens   = {}
-        ds_loads  = {}
-        ds_trans  = {}
-        ds_branch = {}
+        ds_gens, ds_loads, ds_trans, ds_branch = {}, {}, {}, {}
 
-        for sc in all_scenario_names: 
+        for i in range(len(num_rand_sc)): 
+            sc = f"sc_{i}"
             ds_loads[sc]  = {load: np.random.binomial(1, p, 1)[0] for load, p in prob_loads.items()}
             ds_branch[sc] = {line: np.random.binomial(1, p, 1)[0] for line, p in prob_lines.items()}
             ds_gens[sc]   = {gen:  np.random.binomial(1, p, 1)[0] for gen,  p in prob_gens.items()}
 
-# ds_branch = {sc1: {line1: yes/no, line2: yes/no, ...}, sc2: {...}, ...}
-
-
+        return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
 def scenario_generator(
         mode: str,
