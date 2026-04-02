@@ -3,6 +3,7 @@
 from ..data_utils.structures import as_damage_data
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import pickle
 import random
 import math
@@ -269,6 +270,8 @@ def generate_from_bernoulli(
 
     samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
 
+    all_scenario_names = [f'event{i}_trial{j}' for i in event_ids for j in range(num_trials)]
+
     cache_path = None
     if cache_dir is not None:
         Path(cache_dir).mkdir(parents=True, exist_ok=True)
@@ -285,8 +288,6 @@ def generate_from_bernoulli(
 
             return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
-
-    
     total = len(event_ids) * num_trials
     samples_df = {}
     count = 0
@@ -356,29 +357,42 @@ def generate_from_bernoulli(
 
         print(f"Saved damage states to cache: {cache_path}")
 
-    prob_loads = {node: 0 for node in nodes_load}
-    prob_lines = {line: 0 for line in lines}
-    prob_gens  = {gen: 0  for gen  in gens}
+    if by_component == False: 
+        #Create probability dict per component type. 
+        prob_loads = {node: 0 for node in nodes_load}
+        prob_lines = {line: 0 for line in lines}
+        prob_gens  = {gen: 0  for gen  in gens}
 
-    for key in ds_branch: 
-        for line in lines:
-            if ds_branch[key][line] == 1:
-                prob_lines[line] += 1
-        
-    for key in ds_gens: 
-        for gen in gens:
-            if ds_gens[key][gen] == 1:
-                prob_gens[gen] += 1
+        for key in ds_branch: 
+            for line in lines:
+                if ds_branch[key][line] == 1:
+                    prob_lines[line] += 1
+            
+        for key in ds_gens: 
+            for gen in gens:
+                if ds_gens[key][gen] == 1:
+                    prob_gens[gen] += 1
 
-    for key in ds_loads: 
-        for load in nodes_load:
-            if ds_loads[key][load] == 1:
-                prob_loads[load] += 1
+        for key in ds_loads: 
+            for load in nodes_load:
+                if ds_loads[key][load] == 1:
+                    prob_loads[load] += 1
+
+        prob_loads = {node: prob_loads[node]/total for node in nodes_load}
+        prob_lines = {line: prob_lines[line]/total for line in lines}
+        prob_gens  = {gen:    prob_gens[gen]/total for gen  in gens}
+
+        ds_gens   = {}
+        ds_loads  = {}
+        ds_trans  = {}
+        ds_branch = {}
+
+        for sc in all_scenario_names: 
+            ds_loads[sc]  = {load: np.random.binomial(1, p, 1)[0] for load, p in prob_loads.items()}
+            ds_branch[sc] = {line: np.random.binomial(1, p, 1)[0] for line, p in prob_lines.items()}
+            ds_gens[sc]   = {gen:  np.random.binomial(1, p, 1)[0] for gen,  p in prob_gens.items()}
 
 # ds_branch = {sc1: {line1: yes/no, line2: yes/no, ...}, sc2: {...}, ...}
-
-
-
 
 
 
