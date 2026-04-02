@@ -272,6 +272,9 @@ def generate_from_bernoulli(
     samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
 
     all_scenario_names = [f'event{i}_trial{j}' for i in event_ids for j in range(num_trials)]
+    total = len(event_ids) * num_trials
+    samples_df = {}
+    count = 0
 
     cache_path = None
     if cache_dir is not None:
@@ -287,68 +290,65 @@ def generate_from_bernoulli(
                 ds_gens, ds_loads, ds_trans, ds_branch = pickle.load(f)
             print(f"Loaded damage states from cache: {cache_path}")
 
-    total = len(event_ids) * num_trials
-    samples_df = {}
-    count = 0
+        else: 
+            for event in event_ids:
+                for trial in range(num_trials):
+                    
+                    count +=1
+                    print(f"[{count}/{total}] Parsing EQ event {event}, trial {trial} ...")
+                    fname = f"240busWECC_2018_PSS_real{event}{patch}_combined_trial{trial}.csv"
+                    fpath = samples_folder / fname
 
-    for event in event_ids:
-        for trial in range(num_trials):
-            
-            count +=1
-            print(f"[{count}/{total}] Parsing EQ event {event}, trial {trial} ...")
-            fname = f"240busWECC_2018_PSS_real{event}{patch}_combined_trial{trial}.csv"
-            fpath = samples_folder / fname
+                    if not fpath.exists():
+                        print(f"File not found: {fpath}, skipping ...", flush=True)
+                        continue
 
-            if not fpath.exists():
-                print(f"File not found: {fpath}, skipping ...", flush=True)
-                continue
+                    try:
+                        df = pd.read_csv(fpath)
+                    except Exception as e:
+                        print(f"Error reading {fpath}: {e}")
+                        continue
 
-            try:
-                df = pd.read_csv(fpath)
-            except Exception as e:
-                print(f"Error reading {fpath}: {e}")
-                continue
+                    samples_df[f"event{event}_trial{trial}"] = df
 
-            samples_df[f"event{event}_trial{trial}"] = df
+            for sc, df in samples_df.items():
+                if df.empty:
+                    continue
 
-    for sc, df in samples_df.items():
-        if df.empty:
-            continue
+                df = df.copy()
+                df.columns = df.columns.str.strip()
 
-        df = df.copy()
-        df.columns = df.columns.str.strip()
+                branch_failures, load_failures, gen_failures = [], [], []
+                
+                if "Branch_fails" in df.columns:
+                    for v in df["Branch_fails"].dropna():
+                        key = parse_branch_entry(v)
+                        if key != None and key in lines:
+                            branch_failures.append(key)
 
-        branch_failures, load_failures, gen_failures = [], [], []
-        
-        if "Branch_fails" in df.columns:
-            for v in df["Branch_fails"].dropna():
-                key = parse_branch_entry(v)
-                if key != None and key in lines:
-                    branch_failures.append(key)
+                if "Xfmr_fails" in df.columns:
+                    for v in df["Xfmr_fails"].dropna():
+                        key = parse_xfmr_entry(v)
+                        if key != None and key in lines:
+                            branch_failures.append(key)
 
-        if "Xfmr_fails" in df.columns:
-            for v in df["Xfmr_fails"].dropna():
-                key = parse_xfmr_entry(v)
-                if key != None and key in lines:
-                    branch_failures.append(key)
+                if "Load_fails" in df.columns:
+                    for val in df["Load_fails"].dropna():
+                        s = str(val).strip()
+                        if s not in ("", "None"):
+                            load_failures.append(s)
+                load_failures_strp = [int(x.strip("[]")) for x in load_failures]
 
-        if "Load_fails" in df.columns:
-            for val in df["Load_fails"].dropna():
-                s = str(val).strip()
-                if s not in ("", "None"):
-                    load_failures.append(s)
-        load_failures_strp = [int(x.strip("[]")) for x in load_failures]
+                if "Gen_fails" in df.columns:
+                    for v in df["Gen_fails"].dropna():
+                        key = parse_gen_entry(v)
+                        if key != None: 
+                            gen_failures.append(key)
 
-        if "Gen_fails" in df.columns:
-            for v in df["Gen_fails"].dropna():
-                key = parse_gen_entry(v)
-                if key != None: 
-                    gen_failures.append(key)
-
-        ds_branch[sc] = {l: int(l in branch_failures)    for l in lines}
-        ds_loads[sc]  = {n: int(n in load_failures_strp) for n in nodes_load}
-        ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
-        ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
+                ds_branch[sc] = {l: int(l in branch_failures)    for l in lines}
+                ds_loads[sc]  = {n: int(n in load_failures_strp) for n in nodes_load}
+                ds_gens[sc]   = {g: int(g in gen_failures)       for g in gens}
+                ds_trans[sc]  = {t: 0 for t in trans_nodes}                        # no trans failures
 
     if by_type==False:   #Create probability dict per component type. 
         

@@ -92,7 +92,7 @@ def main():
     lam = 100.0
     mipgap = 0.01
 
-    # Keep these consistent for Phase 1 (you can expand later)
+
     add_DG = True              # or False
     add_trans_fail = False     # IMPORTANT: keep False if want "no trans failures" consistent w/ file data
     DGcap = 50.0
