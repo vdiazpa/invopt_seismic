@@ -37,13 +37,12 @@ def main():
     num_trials_files = 20
     hard_frac = 0.5
     tau = 0.1    
-
+    max_inv = 5
     add_DG = True              # or False
     add_trans_fail = False     # IMPORTANT: keep False if want "no trans failures" consistent w/ file data
     DGcap = 50.0
-
     seed = 1
-    form = "risk_neutral"
+    form = "cvar_only"  # "risk_neutral" # #  #  
 
     print("\n===============================================")
     print("1) Generating/Loading FILES damage states")
@@ -59,10 +58,10 @@ def main():
         num_rand_sc= 500,
         cache_dir=cache_dir,
         patch=patch,
-        cache_tag=f"bern_e{len(event_ids)}_tr{num_trials_files}_{patch}",
+        cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
         use_cache=True)
     
-    crit = critical_assets_identifier(mode="all_in_polygon", grid=grid, bus_in_poly=bus_in_poly)
+    crit = critical_assets_identifier(mode="all_in_polygon", grid=grid, bus_in_poly=bus_in_poly, damage_states=ds_MC)
 
     res_MC = model_build_solve(
             form=form,
@@ -73,8 +72,8 @@ def main():
             add_DG=add_DG,
             DGcap=DGcap,
             add_trans_fail=add_trans_fail,
-            max_invest=20,
-            tee=True,
+            max_invest=max_inv,
+            tee=False,
             print_vars=True,
             time_solve=True,
         )
@@ -88,8 +87,8 @@ def main():
             add_DG=add_DG,
             DGcap=DGcap,
             add_trans_fail=add_trans_fail,
-            max_invest=20,
-            tee=True,
+            max_invest=max_inv,
+            tee=False,
             print_vars=True,
             time_solve=True,
         )

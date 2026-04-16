@@ -144,9 +144,9 @@ def build_inv_opt(
 
     def invest_cost_rule(m):      # Per-scenario Invest Cost
         base_inv_cost = (sum(hard_frac * hardening_cost[g] * m.GenInvest[g]    for g in critical_assets.gens)  +  # hardening cost 9-30 -> cost ~= n in [0,1] * r in [9,30]
-                        sum(hard_frac * hardening_cost[i]  * m.DistSSInvest[i] for i in critical_assets.loads) )
+                        sum(hard_frac * hardening_cost[i]  * m.DistSSInvest[i] for i in critical_assets.loads) * 0.25 )
         if add_DG: 
-            base_inv_cost += sum(5*m.DGInvest[i] for i in critical_assets.loads)
+            base_inv_cost += sum(1*m.DGInvest[i] for i in critical_assets.loads)
             #base_inv_cost += sum(0.005 * m.DGGenerated[i] for i in critical_assets.loads) 
         if add_trans_fail: 
             base_inv_cost += sum(hard_frac * hardening_cost[i] * m.TransInvest[i]  for i in critical_assets.trans)
@@ -162,7 +162,7 @@ def build_inv_opt(
     model.TotalShed  = Expression(rule=total_shed_rule)
 
     def ObjectiveRule(model): 
-        return  model.ShedCost + model.InvestCost*1e-5  # Scale down investment cost to keep objective in MW scale 
+        return  model.ShedCost + model.InvestCost*1e-6  # Scale down investment cost to keep objective in MW scale 
     model.ObjectiveVal  = Objective(rule = ObjectiveRule, sense = minimize)
 
     if max_invest is not None:   # Invest Budget
@@ -253,10 +253,10 @@ def model_build_solve(
         mip_gap: float = 0.01):
 
     options = {"solver": "gurobi"}
-
     all_scenario_names = [str(s) for s in damage_states.ds_gens.keys()]
     num_scenarios = len(all_scenario_names)
     islanded_map = compute_islanded_undamaged_map(grid, damage_states)
+    any_s = all_scenario_names[0]
 
     #Build Extensive Form
     ef = ExtensiveForm(options, all_scenario_names, scenario_creator, scenario_creator_kwargs={
@@ -279,9 +279,8 @@ def model_build_solve(
 
     def expected_shed_rule(m):
             return (1.0/num_scenarios) * sum( ef.local_scenarios[sname].TotalShed for sname in all_scenario_names)
-    ef_model.ExpectedShed = Expression(rule=expected_shed_rule)
 
-    any_s = all_scenario_names[0]
+    ef_model.ExpectedShed = Expression(rule=expected_shed_rule)
     ef_model.Invest = Expression(expr= ef.local_scenarios[any_s].InvestCost)  #Investment Cost
                                        
     if form in ("cvar_mean", "cvar_only"):    
@@ -305,9 +304,10 @@ def model_build_solve(
         if form=="cvar_mean":
             def EF_Objective_CVar_rule(m):  
                 return ef_model.ExpectedShed + lam * m.Cvar 
+
         elif form=="cvar_only": 
             def EF_Objective_CVar_rule(m):
-                return lam * m.Cvar + ef_model.ExpectedShed*1e-4 
+                return lam * m.Cvar + ef_model.Invest*1e-6  # Scale down investment cost to keep objective in MW scale, but still have it as a tie-breaker among equal CVaR solutions
         else: 
             raise ValueError(f"Unknown form {form} for CVaR objective modification.")
         
@@ -315,7 +315,7 @@ def model_build_solve(
 
     #ef_model.write(f"SP_{form}.lp", io_options={"symbolic_solver_labels": True})
 
-    # ============================================ Solve 
+    # =========================================================== Solve 
     start_time = time.time()
     results    = ef.solve_extensive_form(solver_options = {"MIPGap":mip_gap}, tee=tee)
     end_time   = time.time()

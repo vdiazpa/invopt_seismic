@@ -138,8 +138,7 @@ def generate_from_MC(
     patch:      str = "",
     cache_dir:  str = None,
     cache_tag: str = None,
-    use_cache: bool = True,
-):
+    use_cache: bool = True):
     
     gens  = data['gens']
     lines = data['lines']
@@ -254,8 +253,7 @@ def generate_from_bernoulli(
     by_type: bool=False, 
     cache_dir: str=None,
     cache_tag: str=None,
-    use_cache: bool=True,
-):
+    use_cache: bool=True):
     
     gens  = data['gens']
     lines = data['lines']
@@ -371,9 +369,11 @@ def generate_from_bernoulli(
                 if ds_loads[key][load] == 1:
                     prob_loads[load] += 1
 
-        prob_loads = {node: prob_loads[node]/total for node in nodes_load}
-        prob_lines = {line: prob_lines[line]/total for line in lines}
-        prob_gens  = {gen:    prob_gens[gen]/total for gen  in gens}
+        event_scens = [k for k in ds_gens if k.startswith(f"event{event}_")]
+
+        prob_gens = { g: np.mean([ds_gens[k][g] for k in event_scens]) for g in gens}
+        prob_loads = {node: np.mean([ds_loads[k][node] for k in event_scens]) for node in nodes_load}
+        prob_lines = {line: np.mean([ds_branch[k][line] for k in event_scens]) for line in lines}
 
         ds_gens, ds_loads, ds_trans, ds_branch = {}, {}, {}, {}
 
@@ -382,6 +382,7 @@ def generate_from_bernoulli(
             ds_loads[sc]  = {load: np.random.binomial(1, p, 1)[0] for load, p in prob_loads.items()}
             ds_branch[sc] = {line: np.random.binomial(1, p, 1)[0] for line, p in prob_lines.items()}
             ds_gens[sc]   = {gen:  np.random.binomial(1, p, 1)[0] for gen,  p in prob_gens.items()}
+            ds_trans[sc]  = {t: 0 for t in trans_nodes}
 
         return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
