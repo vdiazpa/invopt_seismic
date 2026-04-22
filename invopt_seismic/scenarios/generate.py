@@ -350,38 +350,25 @@ def generate_from_bernoulli(
 
     if by_type==False:   #Create probability dict per component type. 
         
-        prob_loads = {node: 0 for node in nodes_load}
-        prob_lines = {line: 0 for line in lines}
-        prob_gens  = {gen:  0 for gen  in gens}
+        ds_gens_orig = ds_gens.copy()
+        ds_loads_orig = ds_loads.copy()
+        ds_branch_orig = ds_branch.copy()
+        ds_trans_orig = ds_trans.copy()
 
-        for key in ds_branch: 
-            for line in lines:
-                if ds_branch[key][line] == 1:
-                    prob_lines[line] += 1
-            
-        for key in ds_gens: 
-            for gen in gens:
-                if ds_gens[key][gen] == 1:
-                    prob_gens[gen] += 1
+        for sc in ds_gens_orig:
+            event_tag = sc.split("_trial")[0]
 
-        for key in ds_loads: 
-            for load in nodes_load:
-                if ds_loads[key][load] == 1:
-                    prob_loads[load] += 1
+            event_scens = [k for k in ds_gens_orig if k.startswith(event_tag + "_")]
 
-        event_scens = [k for k in ds_gens if k.startswith(f"event{event}_")]
+            #compute marginal probabilities
+            prob_gens = {g: np.mean([ds_gens_orig[k][g] for k in event_scens]) for g in gens}
+            prob_loads = {node: np.mean([ds_loads_orig[k][node] for k in event_scens]) for node in nodes_load}
+            prob_lines = {line: np.mean([ds_branch_orig[k][line] for k in event_scens]) for line in lines}
 
-        prob_gens = { g: np.mean([ds_gens[k][g] for k in event_scens]) for g in gens}
-        prob_loads = {node: np.mean([ds_loads[k][node] for k in event_scens]) for node in nodes_load}
-        prob_lines = {line: np.mean([ds_branch[k][line] for k in event_scens]) for line in lines}
-
-        ds_gens, ds_loads, ds_trans, ds_branch = {}, {}, {}, {}
-
-        for i in range(num_rand_sc): 
-            sc = f"sc_{i}"
-            ds_loads[sc]  = {load: np.random.binomial(1, p, 1)[0] for load, p in prob_loads.items()}
-            ds_branch[sc] = {line: np.random.binomial(1, p, 1)[0] for line, p in prob_lines.items()}
-            ds_gens[sc]   = {gen:  np.random.binomial(1, p, 1)[0] for gen,  p in prob_gens.items()}
+            #crate the damage-state objects for the model 
+            ds_gens[sc] = {g: np.random.binomial(1,p) for g,p in prob_gens.items()}
+            ds_loads[sc] = {node: np.random.binomial(1,p) for node,p in prob_loads.items()}
+            ds_branch[sc] = {line: np.random.binomial(1,p) for line,p in prob_lines.items()}
             ds_trans[sc]  = {t: 0 for t in trans_nodes}
 
         return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)

@@ -140,11 +140,11 @@ def build_inv_opt(
     # ========== Resilience Constraint
     model.Resil_Constraint = Constraint(expr = sum(model.LoadShedding[i] for i in nodes_load) <= t * sum(demand[i] for i in nodes_load)) 
     
-    # ======================================== Objective Function
+    # ================================================== OFV
 
     def invest_cost_rule(m):      # Per-scenario Invest Cost
         base_inv_cost = (sum(hard_frac * hardening_cost[g] * m.GenInvest[g]    for g in critical_assets.gens)  +  # hardening cost 9-30 -> cost ~= n in [0,1] * r in [9,30]
-                        sum(hard_frac * hardening_cost[i]  * m.DistSSInvest[i] for i in critical_assets.loads) * 0.25 )
+                         sum(hard_frac * hardening_cost[i] * m.DistSSInvest[i] for i in critical_assets.loads) * 0.5 )
         if add_DG: 
             base_inv_cost += sum(1*m.DGInvest[i] for i in critical_assets.loads)
             #base_inv_cost += sum(0.005 * m.DGGenerated[i] for i in critical_assets.loads) 
@@ -152,6 +152,9 @@ def build_inv_opt(
             base_inv_cost += sum(hard_frac * hardening_cost[i] * m.TransInvest[i]  for i in critical_assets.trans)
         return base_inv_cost
     model.InvestCost = Expression(rule=invest_cost_rule)
+
+    if max_invest is not None:   # Invest Budget Constraint
+        model.InvestBudgetCons = Constraint(expr = model.InvestCost <= max_invest)
             
     def total_shed_cost_rule(m):  #Per-scenario Load Shedding Cost
         return sum(m.LoadShedding[i] for i in nodes_load)
@@ -165,17 +168,7 @@ def build_inv_opt(
         return  model.ShedCost + model.InvestCost*1e-6  # Scale down investment cost to keep objective in MW scale 
     model.ObjectiveVal  = Objective(rule = ObjectiveRule, sense = minimize)
 
-    if max_invest is not None:   # Invest Budget
-        def invest_limit_rule(m):
-            base = sum(m.GenInvest[g] for g in critical_assets.gens) +sum(m.DistSSInvest[i]  for i in critical_assets.loads) 
-            if add_DG:
-                base += sum(m.DGInvest[i]  for i in critical_assets.loads)
-            if add_trans_fail:
-                base += sum(m.TransInvest[i]  for i in critical_assets.trans)
-            return  base <= max_invest
-        #model.InvestLimit_Constraint = Constraint(rule=invest_limit_rule)
-        model.InvestBudgetCons = Constraint(expr = model.InvestCost <= max_invest)
-
+    
     return model
                                                                                                                                                                                                                                            
 ###################################################################################################################################################################
