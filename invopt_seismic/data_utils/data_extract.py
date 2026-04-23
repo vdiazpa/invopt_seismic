@@ -38,26 +38,6 @@ def load_wecc_data_raw(gen_csv:str, bus_csv:str, branch_csv:str, load_csv = None
     gens = gen_data["GEN UID"].to_list()
     unit_capacity  = { gens[i]: gen_data['PT'][i] for i in range(len(gens))  }
 
-    #type attempt
-    # import numpy as np
-    # m_gen_data = pd.read_csv(r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\m-file-data\gen_data.csv")
-    # m_bus_data = pd.read_csv(r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\m-file-data\bus_data.csv")
-
-    # rows = []
-    # for b, rgrp in gen_data.groupby('I'):
-    #     mgrp = m_gen_data[m_gen_data['bus'] == b]
-    #     if mgrp.empty:
-    #         for pt in rgrp["PT"].to_numpy():
-    #             rows.append((b, pt, np.nan, np.inf))
-    #         continue
-    #     mcaps = mgrp['Pmax'].to_numpy()
-    #     for pt in rgrp["PT"].to_numpy():
-    #         j = np.argmin(np.abs(mcaps - pt))
-    #         rows.append((b, float(pt), float(mcaps[j]), float(abs(mcaps[j] - pt))))
-
-    # gap_df = pd.DataFrame(rows, columns=["bus", "PT_raw", "Pmax_closest", "abs_gap"])
-    # print(gap_df["abs_gap"].replace([np.inf], np.nan).describe())
-    # print(gap_df.sort_values("abs_gap", ascending=False).head(30))
 
     # ----------- Buses
     nodes = bus_data[bus].to_list()
@@ -129,7 +109,10 @@ def load_wecc_data_raw(gen_csv:str, bus_csv:str, branch_csv:str, load_csv = None
 
     print("Total system demand:", round(total_demand,1), "MW")
     
-    # ------------ Costs (millions)
+    # ========================================================== Costs (millions)
+
+    gen_data_capex = pd.read_csv(r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\gen_data_with_types.csv", header=0)
+
     hardening_cost = {}            
     for i in range(len(all_nodes)): 
         if 0 <= bus_data[bus_kv][i] <= 69:
@@ -141,23 +124,27 @@ def load_wecc_data_raw(gen_csv:str, bus_csv:str, branch_csv:str, load_csv = None
         elif 138 < bus_data[bus_kv][i] <= 161:
             hardening_cost[bus_data[bus][i]] = 12.6
         elif 161 < bus_data[bus_kv][i] <= 230:
-            hardening_cost[bus_data[bus][i]] = 14.
+            hardening_cost[bus_data[bus][i]] = 14.0
         elif 230 < bus_data[bus_kv][i] <= 345:
             hardening_cost[bus_data[bus][i]] = 21.1
         elif 345 < bus_data[bus_kv][i] <= 500:
             hardening_cost[bus_data[bus][i]] = 30.8
 
-    for g in range(len(gens)): 
-        if gen_data['PT'][g] <= 200:
-            hardening_cost[gen_data['GEN UID'][g]] = 2
-        elif 200 < gen_data['PT'][g] <= 800:
-            hardening_cost[gen_data['GEN UID'][g]] = 5
-        elif gen_data['PT'][g] > 800:
-            hardening_cost[gen_data['GEN UID'][g]] = 10
+    for i, gen in gen_data_capex.iterrows():
+        cost =  round(gen['capex']*gen['PT']*1000 *(1/1000000)*0.2,5)
+        hardening_cost[gen_data['GEN UID'][i]] = cost  # Change Unit to MW, Scale to millions< multuiply by 0.25 to disaggregate capacity at each unit
 
-    #print(hardening_cost)
+    # for g in range(len(gens)): 
+    #     if gen_data['PT'][g] <= 200:
+    #         hardening_cost[gen_data['GEN UID'][g]] = 2
+    #     elif 200 < gen_data['PT'][g] <= 800:
+    #         hardening_cost[gen_data['GEN UID'][g]] = 5
+    #     elif gen_data['PT'][g] > 800:
+    #         hardening_cost[gen_data['GEN UID'][g]] = 10
 
-    # Create line-to-bus (incidence matrix) & Bus-to-unit (adjacency matrix) Maps
+    print(hardening_cost)
+
+    # ========================================================== Maps
     line_to_bus = pd.DataFrame(0, index=lines, columns=all_nodes, dtype = int)
     bus_to_unit = pd.DataFrame(0, index=gens , columns=all_nodes, dtype = int)
 

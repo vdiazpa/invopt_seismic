@@ -24,8 +24,8 @@ def main():
         r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\gen_data_raw.csv",
         r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\bus_data_raw.csv",
         r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\branch_data_raw_with_rateA_m_all.csv",
-        load_csv=r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\load_data_raw.csv",
-    )
+        load_csv=r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\load_data_raw.csv"
+        )
     grid = as_grid_data(data)
     df_poly = pd.read_csv(r"C:\Users\vdiazpa\Documents\SEISMIC\miniWECC_data\buses_inside_polygon.csv")
     bus_in_poly = df_poly.iloc[:, 0].dropna().astype(int).tolist()
@@ -35,12 +35,10 @@ def main():
     patch = "patch"   
     event_ids = list(range(1, 26))     # 1..25
     num_trials_files = 20
-    hard_frac = 0.5
-    tau = 0.1    
-    max_inv = 5
+    max_inv = 18
     add_DG = False              # or False
     add_trans_fail = False     # IMPORTANT: keep False if want "no trans failures" consistent w/ file data
-    DGcap = 50.0
+    DGcap = 100.0
     seed = 1
     form = "cvar_only"  # "risk_neutral" # #  #  
 
@@ -61,13 +59,7 @@ def main():
         cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
         use_cache=True)
     
-    
-    crit = critical_assets_identifier(
-        mode="all_in_polygon",
-        grid=grid,
-        bus_in_poly=bus_in_poly,
-        damage_states=ds_MC
-    )
+    crit = critical_assets_identifier(mode="all_in_polygon", grid=grid, bus_in_poly=bus_in_poly, damage_states=ds_MC)
 
     # =============================================== RUNS
 
@@ -75,8 +67,7 @@ def main():
         ("MC", ds_MC, "risk_neutral"),
         ("MC", ds_MC, "cvar_only"),
         ("BERN", ds_bern, "risk_neutral"),
-        ("BERN", ds_bern, "cvar_only"),
-    ]
+        ("BERN", ds_bern, "cvar_only") ]
 
     for label, ds, form in cases:
 
@@ -85,19 +76,7 @@ def main():
         print("===============================================")
 
         res = model_build_solve(
-            form=form,
-            grid=grid,
-            hard_frac=hard_frac,
-            damage_states=ds,
-            crit_assets=crit,
-            add_DG=add_DG,
-            DGcap=DGcap,
-            add_trans_fail=add_trans_fail,
-            max_invest=max_inv,
-            tee=False,
-            print_vars=False,
-            time_solve=True,
-        )
+            form=form,grid=grid, damage_states=ds,crit_assets=crit,add_DG=add_DG, DGcap=DGcap,add_trans_fail=add_trans_fail,max_invest=max_inv, print_vars=True, time_solve=True)
 
         save_run_results(
             res,
@@ -111,8 +90,6 @@ def main():
             form=form,
             crit_mode="all_in_polygon",
             max_invest=max_inv,
-            hard_frac=hard_frac,
-            tau=tau,
         )
 
     print("\nDONE.")

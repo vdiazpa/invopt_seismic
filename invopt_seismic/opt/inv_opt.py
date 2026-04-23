@@ -144,7 +144,7 @@ def build_inv_opt(
 
     def invest_cost_rule(m):      # Per-scenario Invest Cost
         base_inv_cost = (sum(hard_frac * hardening_cost[g] * m.GenInvest[g]    for g in critical_assets.gens)  +  # hardening cost 9-30 -> cost ~= n in [0,1] * r in [9,30]
-                         sum(hard_frac * hardening_cost[i] * m.DistSSInvest[i] for i in critical_assets.loads) * 0.5 )
+                         sum(hard_frac * hardening_cost[i] * m.DistSSInvest[i] for i in critical_assets.loads)  )
         if add_DG: 
             base_inv_cost += sum(1*m.DGInvest[i] for i in critical_assets.loads)
             #base_inv_cost += sum(0.005 * m.DGGenerated[i] for i in critical_assets.loads) 
@@ -171,9 +171,8 @@ def build_inv_opt(
     
     return model
                                                                                                                                                                                                                                            
-###################################################################################################################################################################
-#                                                                                                         ## f: Create Earthquake Scenarios & Id critical assets ##
-###################################################################################################################################################################
+
+################################################################################## Create Earthquake Scenarios 
 
 def scenario_creator(scenario_name, **kwargs):
     
@@ -223,16 +222,14 @@ def scenario_creator(scenario_name, **kwargs):
 
     return model
 
-##################################################################################################################################################################
-#                                                                                                                                         ## f:Build SP & Solve ##
-##################################################################################################################################################################
+################################################################################### Build SP & Solve 
 
 def model_build_solve(
         form:str, 
         grid: GridData, 
-        hard_frac:float, 
         damage_states: DamageData,
         crit_assets: CriticalAssets,
+        hard_frac:float = 0.5, 
         tau:float = 0.5,
         alpha:float = 0.99,
         lam:float = 1.0,
