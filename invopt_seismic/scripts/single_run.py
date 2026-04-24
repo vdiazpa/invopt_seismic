@@ -34,13 +34,14 @@ def main():
     # =============================================== Experiment settings 
     patch = "patch"   
     event_ids = list(range(1, 26))     # 1..25
-    num_trials_files = 20
+    num_trials_files = 5
     max_inv = 18
     add_DG = False              # or False
     add_trans_fail = False     # IMPORTANT: keep False if want "no trans failures" consistent w/ file data
     DGcap = 100.0
     seed = 1
     form = "cvar_only"  # "risk_neutral" # #  #  
+    alpha = 0.75
 
     print("\n===============================================")
     print("1) Generating/Loading FILES damage states")
@@ -64,10 +65,11 @@ def main():
     # =============================================== RUNS
 
     cases = [
-        ("MC", ds_MC, "risk_neutral"),
-        ("MC", ds_MC, "cvar_only"),
-        ("BERN", ds_bern, "risk_neutral"),
-        ("BERN", ds_bern, "cvar_only") ]
+        # ("MC", ds_MC, "risk_neutral"),
+     ("MC", ds_MC, "cvar_only"),
+        # ("BERN", ds_bern, "risk_neutral"),
+        # ("BERN", ds_bern, "cvar_only") 
+        ]
 
     for label, ds, form in cases:
 
@@ -75,22 +77,23 @@ def main():
         print(f"Running: {label} - {form}")
         print("===============================================")
 
-        res = model_build_solve(
-            form=form,grid=grid, damage_states=ds,crit_assets=crit,add_DG=add_DG, DGcap=DGcap,add_trans_fail=add_trans_fail,max_invest=max_inv, print_vars=True, time_solve=True)
+        res = model_build_solve(form=form,grid=grid, damage_states=ds,crit_assets=crit,add_DG=add_DG, DGcap=DGcap,add_trans_fail=add_trans_fail, alpha=alpha, max_invest=max_inv, print_vars=True, time_solve=True)
 
-        save_run_results(
-            res,
-            base_dir=results_dir,
-            dataset=label,
-            patch=patch,
-            n_events=len(event_ids),
-            n_trials=num_trials_files,
-            n_samples=len(res["shed_vals"]),
-            seed=seed,
-            form=form,
-            crit_mode="all_in_polygon",
-            max_invest=max_inv,
-        )
+        print(res["extreme_ls_scenarios"])
+
+        # save_run_results(
+        #     res,
+        #     base_dir=results_dir,
+        #     dataset=label,
+        #     patch=patch,
+        #     n_events=len(event_ids),
+        #     n_trials=num_trials_files,
+        #     n_samples=len(res["shed_vals"]),
+        #     seed=seed,
+        #     form=form,
+        #     crit_mode="all_in_polygon",
+        #     max_invest=max_inv,
+        # )
 
     print("\nDONE.")
 

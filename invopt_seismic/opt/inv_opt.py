@@ -14,7 +14,6 @@ def build_inv_opt(
         damage_states: DamageData, 
         critical_assets: CriticalAssets, 
         hard_frac:float = 0.5, 
-        t:float = 0.5, 
         max_invest = None, 
         add_DG = False, 
         DGcap = 0.0,
@@ -23,7 +22,7 @@ def build_inv_opt(
 
     model = ConcreteModel()
 
-    # ======================================== Sets/Maps
+    # ======================================== Sets/Maps/Params
 
     gens  = grid.gens
     lines = grid.lines
@@ -43,7 +42,7 @@ def build_inv_opt(
     line_to_bus_dict = grid.line_to_bus_dict
     unit_to_bus_dict = grid.unit_to_bus_dict
 
-    # ======================================== Variables
+    # ======================================== Vars
 
     model.VoltAngle      = Var( all_nodes,  within = Reals,  bounds = (-180, 180) )
     model.PowerGenerated = Var( gens,       within = NonNegativeReals)
@@ -135,10 +134,6 @@ def build_inv_opt(
         return thermal + flows + shed + dg == demand.get(b, 0.0)
     
     model.NodalBalance = Constraint(all_nodes, rule = nb_rule)
-
-
-    # ========== Resilience Constraint
-    model.Resil_Constraint = Constraint(expr = sum(model.LoadShedding[i] for i in nodes_load) <= t * sum(demand[i] for i in nodes_load)) 
     
     # ================================================== OFV
 
@@ -181,7 +176,6 @@ def scenario_creator(scenario_name, **kwargs):
 
     ds_for_s = DamageData( ds_gens = ds_all.ds_gens[sname],ds_loads = ds_all.ds_loads[sname],ds_trans = ds_all.ds_trans[sname],ds_branch = ds_all.ds_branch[sname])
     
-    tau  = kwargs.get("tau")
     grid = kwargs.get("grid")
     add_DG = kwargs.get("add_DG", False)
     hard_frac = kwargs.get("hard_frac")
@@ -196,7 +190,6 @@ def scenario_creator(scenario_name, **kwargs):
         hard_frac=hard_frac,
         damage_states=ds_for_s,
         critical_assets=crit_assets,
-        t=tau, 
         max_invest = max_invest, 
         add_DG = add_DG,
         add_trans_fail=add_trans_fail,
@@ -206,9 +199,6 @@ def scenario_creator(scenario_name, **kwargs):
     num_scenarios = int(kwargs.get("num_scenarios", 1))
 
     form = kwargs.get("form", "risk_neutral")
-
-    if form != "hard_resil":
-        model.del_component(model.Resil_Constraint)
     
     root_vars = [model.GenInvest, model.DistSSInvest]
 
@@ -230,7 +220,6 @@ def model_build_solve(
         damage_states: DamageData,
         crit_assets: CriticalAssets,
         hard_frac:float = 0.5, 
-        tau:float = 0.5,
         alpha:float = 0.99,
         lam:float = 1.0,
         add_DG: bool = False,
@@ -256,16 +245,12 @@ def model_build_solve(
                              "hard_frac": hard_frac,
                              "damage_states": damage_states,
                              "crit_assets": crit_assets,
-                             "tau": tau, 
                              "max_invest": max_invest, 
                              "add_DG": add_DG,
                              "add_trans_fail": add_trans_fail, 
                              "islanded_map": islanded_map,
                              "DGcap": DGcap})
     ef_model = ef.ef
-
-    if form == "hard_resil":
-        print("Resilience parameter: ", tau)   
 
     def expected_shed_rule(m):
             return (1.0/num_scenarios) * sum( ef.local_scenarios[sname].TotalShed for sname in all_scenario_names)
@@ -305,10 +290,14 @@ def model_build_solve(
 
     #ef_model.write(f"SP_{form}.lp", io_options={"symbolic_solver_labels": True})
 
-    # =========================================================== Solve 
+    # =========================================================== Solve & Print Runtime and CVaR (average LS above the VaR threshold)
+
+    extreme_ls_scenarios = {}
+
     start_time = time.time()
     results    = ef.solve_extensive_form(solver_options = {"MIPGap":mip_gap}, tee=tee)
     end_time   = time.time()
+
     if time_solve: 
         print(f"Runtime: {end_time - start_time:.2f} seconds")
 
@@ -316,9 +305,17 @@ def model_build_solve(
         eta_val  = value(ef_model.eta)
         xi_sum   = sum(value(ef_model.xi[s]) for s in all_scenario_names)
         cvar_val = eta_val + (1.0 /( (1.0 - alpha)*num_scenarios)) * xi_sum
-        print(f"Computed CVaR (MW): {cvar_val}")
+        print(f"Computed CVaR (MW): {round(cvar_val, 4)}")
+
+    #==================================================== Get scenarios with LS above cvar threshold
+
+        for s in all_scenario_names:
+            scen = ef.local_scenarios[s]
+            if value(scen.TotalShed) >= eta_val:
+                extreme_ls_scenarios[s] = round(value(scen.TotalShed), 4)
 
     #====================================================== Compute CVaR from solution
+
     all_scenario_names = list(ef.local_scenarios.keys())
     num_scenarios = len(all_scenario_names)
 
@@ -327,8 +324,7 @@ def model_build_solve(
     for s in all_scenario_names:
         scen = ef.local_scenarios[s]
         shed_vals.append(value(scen.TotalShed))
-
-    #=============== Compute CVaR from results
+        
     N = len(shed_vals)
     sorted_shed = sorted(shed_vals)
     k = int((1 - alpha) * N)    # number of tail scenarios
@@ -336,12 +332,15 @@ def model_build_solve(
     true_cvar = sum(tail) / len(tail) if tail else 0.0
 
     #====================================================== Print results
+
     print("========================================================")
     print(f"\nInvestment cost: ${value(ef_model.Invest):.2f} (M)")
     print(f"Expected load shed: {value(ef_model.ExpectedShed):.2f} MW")
     print(f"Total EF objective: {value(ef_model.EF_Obj):.2f}")
     print(f"True CVaR from {form} solution:", round(true_cvar,2) , "MW") 
-    #======================================================= Save Results
+
+    #======================================================= Get value of variables and return Results
+
     variables   = ef.gather_var_values_to_rank0()
     invest_vars = ["GenInvest", "DistSSInvest"]
 
@@ -365,7 +364,14 @@ def model_build_solve(
         _get_invst_var_dict("TransInvest[", trans_inv, var_name, var_value)
         _get_invst_var_dict("DGInvest[", DG_inv, var_name, var_value)
 
-    if print_vars == True:                     #Print Investment Decisions
+
+
+
+    
+
+    # ================================================================ Print Investment Decisions
+
+    if print_vars == True:                     
         print("\nInvestment Decisions:")
         printed = set()
         for ((_, var_name), var_value) in variables.items():
@@ -383,6 +389,7 @@ def model_build_solve(
              "trans_inv": trans_inv, 
              "shed_vals": shed_vals, 
              "DG_inv": DG_inv, 
+             "extreme_ls_scenarios": extreme_ls_scenarios,
              "DGcap": DGcap,
              "scenario_names": all_scenario_names, 
              "variables": variables, 

@@ -31,8 +31,10 @@ def main():
     # ============================================================== Experiment settings 
     event_ids = list(range(1, 26))     # 1..25
     num_trials_files = 20
-    add_trans_fail = False    
+    add_trans_fail = False   
+    alpha = 0.75 
     patch = "patch"   
+    crit_mode = "all"
     print(f"\n{bar}\nExperiment settings:\n{bar}")
 
     # ================================================================ Generate damage states
@@ -48,12 +50,12 @@ def main():
         cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
         use_cache=True)
 
-    crit = critical_assets_identifier(mode="all_in_polygon",grid=grid,bus_in_poly=bus_in_poly,damage_states=ds_MC)
+    crit = critical_assets_identifier(mode=crit_mode, grid=grid, bus_in_poly=bus_in_poly,damage_states=ds_MC)
 
     # ===================================================================== RUNS
     datasets = [("MC", ds_MC), ("BERN", ds_bern)]
     forms    = ["cvar_only", "risk_neutral"]
-    inv_bgts = [2, 5, 10, 20]
+    inv_bgts = [ 5, 10, 20, 35, 55]
     
     all_rows = []
 
@@ -64,7 +66,7 @@ def main():
                 print(f"\n{bar}\n Running: {label} - {form} - BGT: {bgt}\n{bar}")
 
                 res = model_build_solve(
-                    form=form,grid=grid, damage_states=ds, crit_assets=crit,
+                    form=form,grid=grid, damage_states=ds, crit_assets=crit, alpha=alpha,
                     add_trans_fail=add_trans_fail,
                     max_invest=bgt, print_vars=True, time_solve=True)
 
@@ -88,12 +90,13 @@ def main():
                     "cvar": res["cvar"],
                     "inv_cost": res["inv_cost"],
                     "n_gen_inv":   int(sum(res["gen_inv"].values())),
+                    "investments": [ key for key in res["gen_inv"] if res["gen_inv"][key] > 0.5 ] + [ key for key in res["load_inv"] if res["load_inv"][key] > 0.5 ] + [ key for key in res["DG_inv"] if res["DG_inv"][key] > 0.5 ],
                     "n_load_inv":  int(sum(res["load_inv"].values())),
                     "n_dg_inv":    int(sum(res["DG_inv"].values())),
                     "run_dir": run_dir, 
                 })
 
-    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, "summary_all_runs.csv"), index=False)
+    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, f"summary_all_runs_alpha{alpha}_nsce{len(res['shed_vals'])}({len(event_ids)},{len(num_trials_files)}_{crit_mode}).csv"), index=False)
     print("\nDONE.")
 
 if __name__ == "__main__":
