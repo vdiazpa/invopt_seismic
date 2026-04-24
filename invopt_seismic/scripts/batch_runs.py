@@ -56,47 +56,55 @@ def main():
     datasets = [("MC", ds_MC), ("BERN", ds_bern)]
     forms    = ["cvar_only", "risk_neutral"]
     inv_bgts = [ 5, 10, 20, 35, 55]
+    crit_modes = ["all", "all_in_polygon"]
+    alphas = [0.75, 0.95]
+    N_trials = [1, 5, 10]
     
     all_rows = []
 
     for label, ds in datasets: 
         for form in forms: 
             for bgt in inv_bgts: 
+                for crit_mode in crit_modes:
+                    for alpha in alphas:
+                        for num_trial_files in N_trials:
 
-                print(f"\n{bar}\n Running: {label} - {form} - BGT: {bgt}\n{bar}")
+                            print(f"\n{bar}\n Running: {label} - {form} - BGT: {bgt} - Crit Mode: {crit_mode} - Alpha: {alpha} - N Trials: {num_trial_files}\n{bar}")
 
-                res = model_build_solve(
-                    form=form,grid=grid, damage_states=ds, crit_assets=crit, alpha=alpha,
-                    add_trans_fail=add_trans_fail,
-                    max_invest=bgt, print_vars=True, time_solve=True)
+                            res = model_build_solve(
+                                form=form,grid=grid, damage_states=ds, crit_assets=crit, alpha=alpha,
+                                add_trans_fail=add_trans_fail,
+                                max_invest=bgt, print_vars=True, time_solve=True)
 
-                run_dir = save_run_results(
-                    res,
-                    base_dir=results_dir,
-                    dataset=label,
-                    patch=patch,
-                    n_events=len(event_ids),
-                    n_trials=num_trials_files,
-                    n_samples=len(res["shed_vals"]),
-                    form=form,
-                    crit_mode="all_in_polygon",
-                    max_invest=bgt)
-                
-                all_rows.append({
-                    "dataset": label,
-                    "form": form,
-                    "max_invest": bgt, 
-                    "expected_shed": res["expected_shed"],
-                    "cvar": res["cvar"],
-                    "inv_cost": res["inv_cost"],
-                    "n_gen_inv":   int(sum(res["gen_inv"].values())),
-                    "investments": [ key for key in res["gen_inv"] if res["gen_inv"][key] > 0.5 ] + [ key for key in res["load_inv"] if res["load_inv"][key] > 0.5 ] + [ key for key in res["DG_inv"] if res["DG_inv"][key] > 0.5 ],
-                    "n_load_inv":  int(sum(res["load_inv"].values())),
-                    "n_dg_inv":    int(sum(res["DG_inv"].values())),
-                    "run_dir": run_dir, 
-                })
+                            run_dir = save_run_results(
+                                res,
+                                base_dir=results_dir,
+                                dataset=label,
+                                patch=patch,
+                                n_events=len(event_ids),
+                                n_trials=num_trials_files,
+                                n_samples=len(res["shed_vals"]),
+                                form=form,
+                                crit_mode=crit_mode,
+                                max_invest=bgt)
+                            
+                            all_rows.append({
+                                "dataset": label,
+                                "form": form,
+                                "alpha": alpha,
+                                "max_invest": bgt, 
+                                "expected_shed": res["expected_shed"],
+                                "cvar": res["cvar"],
+                                "inv_cost": res["inv_cost"],
+                                "n_gen_inv":   int(sum(res["gen_inv"].values())),
+                                "investments": [ key for key in res["gen_inv"] if res["gen_inv"][key] > 0.5 ] + [ key for key in res["load_inv"] if res["load_inv"][key] > 0.5 ] + [ key for key in res["DG_inv"] if res["DG_inv"][key] > 0.5 ],
+                                "critical":  crit_mode,
+                                "n_load_inv":  int(sum(res["load_inv"].values())),
+                                "n_dg_inv":    int(sum(res["DG_inv"].values())),
+                                "run_dir": run_dir, 
+                            })
 
-    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, f"summary_all_runs_alpha{alpha}_nsce{len(res['shed_vals'])}({len(event_ids)},{len(num_trials_files)}_{crit_mode}).csv"), index=False)
+    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, f"summary_all_runs_alpha{alpha}_nsce{len(res['shed_vals'])}({len(event_ids)}_{num_trials_files}_{crit_mode}_nt{num_trial_files}).csv"), index=False)
     print("\nDONE.")
 
 if __name__ == "__main__":
