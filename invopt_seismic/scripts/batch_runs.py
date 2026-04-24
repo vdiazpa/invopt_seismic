@@ -50,24 +50,41 @@ def main():
         cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
         use_cache=True)
 
-    crit = critical_assets_identifier(mode=crit_mode, grid=grid, bus_in_poly=bus_in_poly,damage_states=ds_MC)
+    
 
     # ===================================================================== RUNS
-    datasets = [("MC", ds_MC), ("BERN", ds_bern)]
-    forms    = ["cvar_only", "risk_neutral"]
-    inv_bgts = [ 5, 10, 20, 35, 55]
+    
+    forms      = ["cvar_only", "risk_neutral"]
     crit_modes = ["all", "all_in_polygon"]
-    alphas = [0.75, 0.95]
-    N_trials = [1, 5, 10]
+    inv_bgts   = [5, 10, 20, 35, 55]
+    alphas     = [0.75, 0.95]
+    N_trials   = [1, 5, 10]
     
     all_rows = []
 
-    for label, ds in datasets: 
-        for form in forms: 
-            for bgt in inv_bgts: 
-                for crit_mode in crit_modes:
-                    for alpha in alphas:
-                        for num_trial_files in N_trials:
+    for num_trial_files in N_trials:
+        # Regenerate damage states with the new number of trials (overwriting cache, since we want to compare across different numbers of trials)
+        ds_MC = generate_from_MC(
+            data=data,event_ids=event_ids,num_trials=num_trial_files,cache_dir=cache_dir,patch=patch,
+            cache_tag=f"files_e{len(event_ids)}_tr{num_trial_files}_{patch}",
+            use_cache=False)
+
+        ds_bern=generate_from_bernoulli(
+            data=data,event_ids=event_ids,num_trials=num_trial_files,
+            num_rand_sc= 500,
+            cache_dir=cache_dir,patch=patch,
+            cache_tag=f"files_e{len(event_ids)}_tr{num_trial_files}_{patch}",
+            use_cache=False)
+        
+        datasets = [("MC", ds_MC), ("BERN", ds_bern)]
+
+        for label, ds in datasets: 
+            for crit_mode in crit_modes:
+                crit = critical_assets_identifier(mode=crit_mode, grid=grid, bus_in_poly=bus_in_poly,damage_states=ds_MC)
+
+                for form in forms: 
+                    for bgt in inv_bgts: 
+                        for alpha in alphas:
 
                             print(f"\n{bar}\n Running: {label} - {form} - BGT: {bgt} - Crit Mode: {crit_mode} - Alpha: {alpha} - N Trials: {num_trial_files}\n{bar}")
 
@@ -77,16 +94,10 @@ def main():
                                 max_invest=bgt, print_vars=True, time_solve=True)
 
                             run_dir = save_run_results(
-                                res,
-                                base_dir=results_dir,
+                                res, base_dir=results_dir,
                                 dataset=label,
                                 patch=patch,
-                                n_events=len(event_ids),
-                                n_trials=num_trials_files,
-                                n_samples=len(res["shed_vals"]),
-                                form=form,
-                                crit_mode=crit_mode,
-                                max_invest=bgt)
+                                n_events=len(event_ids), n_trials=num_trials_files, n_samples=len(res["shed_vals"]), form=form, crit_mode=crit_mode, max_invest=bgt)
                             
                             all_rows.append({
                                 "dataset": label,
@@ -104,7 +115,7 @@ def main():
                                 "run_dir": run_dir, 
                             })
 
-    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, f"summary_all_runs_alpha{alpha}_nsce{len(res['shed_vals'])}({len(event_ids)}_{num_trials_files}_{crit_mode}_nt{num_trial_files}).csv"), index=False)
+    pd.DataFrame(all_rows).to_csv(os.path.join(results_dir, f"summary_all_runs.csv"), index=False)
     print("\nDONE.")
 
 if __name__ == "__main__":
