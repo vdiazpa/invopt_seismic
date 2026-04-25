@@ -29,30 +29,12 @@ def main():
     bus_in_poly = df_poly.iloc[:, 0].dropna().astype(int).tolist()
 
     # ============================================================== Experiment settings 
+
     event_ids = list(range(1, 26))     # 1..25
-    num_trials_files = 20
     add_trans_fail = False   
-    alpha = 0.75 
     patch = "patch"   
-    crit_mode = "all"
     print(f"\n{bar}\nExperiment settings:\n{bar}")
 
-    # ================================================================ Generate damage states
-    ds_MC = generate_from_MC(
-        data=data,event_ids=event_ids,num_trials=num_trials_files,cache_dir=cache_dir,patch=patch,
-        cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
-        use_cache=True)
-
-    ds_bern=generate_from_bernoulli(
-        data=data,event_ids=event_ids,num_trials=num_trials_files,
-        num_rand_sc= 500,
-        cache_dir=cache_dir,patch=patch,
-        cache_tag=f"files_e{len(event_ids)}_tr{num_trials_files}_{patch}",
-        use_cache=True)
-
-    
-
-    # ===================================================================== RUNS
     
     forms      = ["cvar_only", "risk_neutral"]
     crit_modes = ["all", "all_in_polygon"]
@@ -61,6 +43,8 @@ def main():
     N_trials   = [1, 5, 10]
     
     all_rows = []
+
+    # ================================================================ Generate damage states
 
     for num_trial_files in N_trials:
         # Regenerate damage states with the new number of trials (overwriting cache, since we want to compare across different numbers of trials)
@@ -80,7 +64,7 @@ def main():
 
         for label, ds in datasets: 
             for crit_mode in crit_modes:
-                crit = critical_assets_identifier(mode=crit_mode, grid=grid, bus_in_poly=bus_in_poly,damage_states=ds_MC)
+                crit = critical_assets_identifier(mode=crit_mode, grid=grid, bus_in_poly=bus_in_poly,damage_states=ds)
 
                 for form in forms: 
                     for bgt in inv_bgts: 
@@ -97,7 +81,7 @@ def main():
                                 res, base_dir=results_dir,
                                 dataset=label,
                                 patch=patch,
-                                n_events=len(event_ids), n_trials=num_trials_files, n_samples=len(res["shed_vals"]), form=form, crit_mode=crit_mode, max_invest=bgt)
+                                n_events=len(event_ids), n_trials=num_trial_files, n_samples=len(res["shed_vals"]), form=form, crit_mode=crit_mode, max_invest=bgt)
                             
                             all_rows.append({
                                 "dataset": label,
