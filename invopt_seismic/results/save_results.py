@@ -40,6 +40,20 @@ def save_shed_hist(res, run_dir, bins=30, alpha=None):
     plt.savefig(os.path.join(run_dir, "shed_histogram.png"), dpi=300, bbox_inches="tight")
     plt.close()
 
+def save_shed_boxplot(res, run_dir): 
+    shed = np.asarray(res["shed_vals"], dtype=float)
+    if len(shed) ==0: 
+        print("No shedding vlaues for boxplot")
+        return
+    plt.figure(figsize=(10,4))
+    plt.boxplot(shed, vert=False)
+    plt.title("Load Shedding Boxplot Across Scenarios")
+    plt.xlabel("Load Shed (MW)")
+    plt.grid(True, axis="x")
+    plt.savefig(os.path.join(run_dir, "shed_boxplot.png"), dpi=300)
+    plt.close()
+
+
 def save_run_results(
     res, *,
     base_dir,
@@ -124,16 +138,12 @@ def save_run_results(
     # 2) decisions.csv  (long table: asset_type, asset_id, invest)
     # ============================================================
     rows = []
-
     for asset_id, v in res["gen_inv"].items():
         rows.append({"asset_type": "gen", "asset_id": asset_id, "invest": int(v)})
-
     for asset_id, v in res["load_inv"].items():
         rows.append({"asset_type": "load", "asset_id": asset_id, "invest": int(v)})
-
     for asset_id, v in res["trans_inv"].items():
         rows.append({"asset_type": "trans", "asset_id": asset_id, "invest": int(v)})
-
     for asset_id, v in res.get("DG_inv", {}).items():
         rows.append({"asset_type": "DG", "asset_id": asset_id, "invest": int(v)})   
 
@@ -148,6 +158,7 @@ def save_run_results(
     }).to_csv(os.path.join(run_dir, "shedvals.csv"), index=False)
 
     save_shed_hist(res, run_dir, alpha=alpha)
+    save_shed_boxplot(res, run_dir)
 
     # ============================================================
     # 4) run_info.txt  (FULL experiment description)
@@ -190,8 +201,7 @@ def save_run_results(
         inner_results = res["inner_var_vals"]
         for s, results in inner_results.items():
             for result_name, result_df in results.items(): 
-                result_df.to_csv(os.path.join(run_dir, f"inner_{result_name}_scenario_{s}.csv"), index=False)
-
+                result_df.to_csv(os.path.join(run_dir, f"worst_case{result_name}.csv"), index=False)
 
     print("\nSaved run results to:")
     print(" ", run_dir)

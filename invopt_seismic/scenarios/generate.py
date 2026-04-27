@@ -152,8 +152,13 @@ def generate_from_MC(
 
     print(f"Loading damage states from files for {len(event_ids)} realizations and {num_trials} trials each")
 
-    samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
+    # samples_folder = Path(r"//snl/collaborative/Seismic_Grid/seismicGridProject_v2_share_expanded/data/Results/Dynamic_Simulations_Anchored/failure_times/")
     
+    samples_folder = Path(r"//cee/Projects/Seismic_Grid/seismic_grid/data/Results")
+
+    if not samples_folder.exists():
+        print(f"Cant find cee parent folder ...", flush=True)
+
     all_scenario_names = [f'event{i}_trial{j}' for i in event_ids for j in range(num_trials)]
     
     cache_path = None
@@ -172,23 +177,26 @@ def generate_from_MC(
 
             return as_damage_data(ds_gens, ds_loads, ds_trans, ds_branch)
 
-    
     total = len(event_ids) * num_trials
     samples_df = {}
     count = 0
 
     for event in event_ids:
+
+        parent_folder = f"240busWECC_2018_PSS_real{event}_Anchored_Moderate"
+        print(parent_folder)
+        
         for trial in range(num_trials):
-            
             count +=1
             print(f"[{count}/{total}] Parsing EQ event {event}, trial {trial} ...")
-            fname = f"240busWECC_2018_PSS_real{event}{patch}_combined_trial{trial}.csv"
-            fpath = samples_folder / fname
+            fname = f"fail_table_trial{trial}.csv"
+            # fname = f"240busWECC_2018_PSS_real{event}{patch}_combined_trial{trial}.csv"
+            
+            fpath = samples_folder / parent_folder / fname
 
             if not fpath.exists():
                 print(f"File not found: {fpath}, skipping ...", flush=True)
                 continue
-
             try:
                 df = pd.read_csv(fpath)
             except Exception as e:
@@ -206,7 +214,8 @@ def generate_from_MC(
 
         branch_failures, load_failures, gen_failures = [], [], []
         
-        if "Branch_fails" in df.columns:
+        if "Line_fails" in df.columns:
+        # if "Branch_fails" in df.columns:
             for v in df["Branch_fails"].dropna():
                 key = parse_branch_entry(v)
                 if key != None and key in lines:
@@ -246,15 +255,18 @@ def generate_from_MC(
 
 def generate_from_bernoulli(
     data: dict, 
-    num_rand_sc: int = None,
     num_trials:  int = None,   # number of trials per eartquake to consider
     event_ids:   list= None,   # list w. earthquake ID numbers to consider
     patch: str = "",
     by_type: bool=False, 
     cache_dir: str=None,
     cache_tag: str=None,
+    seed: int = None, 
     use_cache: bool=True):
     
+    if seed is not None: 
+        np.random.seed(seed)
+
     gens  = data['gens']
     lines = data['lines']
     nodes_load  = data['nodes_load']

@@ -390,24 +390,16 @@ def model_build_solve(
 
         def _extract_results(m):
             scen = getattr(m, "experiment_id", "unknown_scenario")
-
             flow = _extract_df(m.PowerFlow)
-            mwh = _extract_df(m.PowerGenerated)
+            mwh  = _extract_df(m.PowerGenerated)
             shed = _extract_df(m.LoadShedding)
-
-            ofv = pd.DataFrame({"Scenario": [scen], "OFV": [value(m.ObjectiveVal)] })
-
-            # tag scen on output
-            for df in [flow, mwh, shed]:
-                df["Scenario"] = scen
-
             return { "flow": flow, "mwh": mwh, "shed": shed}
 
         var_values = {}
         for s in all_scenario_names:
             worst_s = all_scenario_names[int(np.argmax(shed_vals))]
             scen = ef.local_scenarios[worst_s]
-            var_values[s] = {worst_s: _extract_results(scen)}
+            var_values = {worst_s: _extract_results(scen)}
 
 
         return { "form": form,
