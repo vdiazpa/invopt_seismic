@@ -51,14 +51,14 @@ def main():
         ds_MC = generate_from_MC(
             data=data,event_ids=event_ids,num_trials=num_trial_files,cache_dir=cache_dir,patch=patch,
             cache_tag=f"files_e{len(event_ids)}_tr{num_trial_files}_{patch}",
-            use_cache=False)
+            use_cache=True)
 
         ds_bern=generate_from_bernoulli(
             data=data,event_ids=event_ids,num_trials=num_trial_files,
             num_rand_sc= 500,
             cache_dir=cache_dir,patch=patch,
             cache_tag=f"files_e{len(event_ids)}_tr{num_trial_files}_{patch}",
-            use_cache=False)
+            use_cache=True)
         
         datasets = [("MC", ds_MC), ("BERN", ds_bern)]
 

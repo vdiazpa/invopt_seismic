@@ -6,13 +6,12 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 
 
-def save_shed_hist(res, run_dir, bins=30):
+def save_shed_hist(res, run_dir, bins=30, alpha=None):
     shed = np.asarray(res["shed_vals"], dtype=float)
     if len(shed) == 0:
         print("No shedding values to save histogram for.")
         return
     
-    alpha = res.get("alpha", None)
     cvar = res.get("cvar", None)
 
     plt.figure(figsize=(12,6))
@@ -38,7 +37,8 @@ def save_shed_hist(res, run_dir, bins=30):
         stats_txt += f"CVaR: {cvar:.3f} MW\n"
 
     plt.gcf().text(0.78, 0.70, stats_txt, fontsize=12, va="top")
-    plt.savefig(os.path.join(run_dir, "shed_histogram.png"))
+    plt.savefig(os.path.join(run_dir, "shed_histogram.png"), dpi=300, bbox_inches="tight")
+    plt.close()
 
 def save_run_results(
     res, *,
@@ -147,7 +147,7 @@ def save_run_results(
         "shed": res["shed_vals"],
     }).to_csv(os.path.join(run_dir, "shedvals.csv"), index=False)
 
-    save_shed_hist(res, run_dir)
+    save_shed_hist(res, run_dir, alpha=alpha)
 
     # ============================================================
     # 4) run_info.txt  (FULL experiment description)

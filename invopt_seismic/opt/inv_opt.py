@@ -380,6 +380,8 @@ def model_build_solve(
 
     if save_inner_varvals  == True: 
 
+        import numpy as np
+
         def _extract_df(var):
             series = pd.Series(var.extract_values(), name=var.name)
             df = series.reset_index()
@@ -401,12 +403,11 @@ def model_build_solve(
 
             return { "flow": flow, "mwh": mwh, "shed": shed}
 
-
         var_values = {}
-
         for s in all_scenario_names:
-            scen = ef.local_scenarios[s]
-            var_values[s] = _extract_results(scen)
+            worst_s = all_scenario_names[int(np.argmax(shed_vals))]
+            scen = ef.local_scenarios[worst_s]
+            var_values[s] = {worst_s: _extract_results(scen)}
 
 
         return { "form": form,
