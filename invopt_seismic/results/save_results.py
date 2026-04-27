@@ -1,7 +1,44 @@
 #save_results.py
 import os
 import pandas as pd
+import numpy as np
 from datetime import datetime
+import matplotlib.pyplot as plt
+
+
+def save_shed_hist(res, run_dir, bins=30):
+    shed = np.asarray(res["shed_vals"], dtype=float)
+    if len(shed) == 0:
+        print("No shedding values to save histogram for.")
+        return
+    
+    alpha = res.get("alpha", None)
+    cvar = res.get("cvar", None)
+
+    plt.figure(figsize=(12,6))
+    plt.hist(shed, bins=bins)
+
+    if alpha is not None: 
+        var_alpha = np.quantile(shed, float(alpha), method="higher")
+        plt.axvline(var_alpha, linestyle="--", color="red", linewidth=2)
+
+    plt.title("Load Shedding Distribution Across Scenarios")
+    plt.xlabel("LoadShed (MW)")
+    plt.ylabel("Frequency")
+    plt.grid(True, axis="y")
+
+    stats_txt = (
+        f"Min: {np.min(shed):.3f} MW\n"
+        f"Max: {np.max(shed):.3f} MW\n"
+        f"Mean: {np.mean(shed):.3f} MW\n"
+        f"Std: {np.std(shed):.3f} MW\n"
+    )
+
+    if cvar is not None: 
+        stats_txt += f"CVaR: {cvar:.3f} MW\n"
+
+    plt.gcf().text(0.78, 0.70, stats_txt, fontsize=12, va="top")
+    plt.savefig(os.path.join(run_dir, "shed_histogram.png"))
 
 def save_run_results(
     res, *,
@@ -103,12 +140,14 @@ def save_run_results(
     pd.DataFrame(rows).to_csv(os.path.join(run_dir, "decisions.csv"), index=False)
 
     # ============================================================
-    # 3) shedvals.csv  (per-scenario shedding)
+    # 3) shedvals.csv  (per-scenario shedding) & Histogram
     # ============================================================
     pd.DataFrame({
         "scenario_index": list(range(len(res["shed_vals"]))),
         "shed": res["shed_vals"],
     }).to_csv(os.path.join(run_dir, "shedvals.csv"), index=False)
+
+    save_shed_hist(res, run_dir)
 
     # ============================================================
     # 4) run_info.txt  (FULL experiment description)
@@ -143,6 +182,16 @@ def save_run_results(
         f.write(f"#Load invested    : {summary['n_load_inv']}\n")
         f.write(f"#Trans invested   : {summary['n_trans_inv']}\n")
         f.write(f"#Scenarios        : {summary['n_scenarios']}\n")
+
+
+    #5) Inner-level results to CSV
+
+    if "inner_var_vals" in res:
+        inner_results = res["inner_var_vals"]
+        for s, results in inner_results.items():
+            for result_name, result_df in results.items(): 
+                result_df.to_csv(os.path.join(run_dir, f"inner_{result_name}_scenario_{s}.csv"), index=False)
+
 
     print("\nSaved run results to:")
     print(" ", run_dir)

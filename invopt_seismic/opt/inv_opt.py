@@ -358,25 +358,6 @@ def model_build_solve(
                 var_dict[idx] = round(var_val)
         return var_dict
 
-    def _extract_df(var):
-        series = pd.Series(var.extract_values(), name=var.name)
-        df = series.reset_index()
-        df.columns = ["ID", var.name]
-        return df
-
-    def _extract_results(m):
-        scen = getattr(m, "experiment_id", "unknown_scenario")
-
-        flow = _extract_df(m.PowerFlow)
-        mwh = _extract_df(m.PowerGenerated)
-        shed = _extract_df(m.LoadShedding)
-
-        ofv = pd.DataFrame({"Scenario": [scen], "OFV": [value(m.ObjectiveVal)] })
-
-        # tag scen on output
-        for df in [flow, mwh, shed]:
-            df["Scenario"] = scen
-            return { "flow": flow, "mwh": mwh, "shed": shed}
 
     gen_inv, load_inv, trans_inv, DG_inv = {}, {}, {}, {}
     for ((_, var_name), var_value) in variables.items():
@@ -384,16 +365,6 @@ def model_build_solve(
         _get_invst_var_dict("DistSSInvest[", load_inv, var_name, var_value)
         _get_invst_var_dict("TransInvest[", trans_inv, var_name, var_value)
         _get_invst_var_dict("DGInvest[", DG_inv, var_name, var_value)
-
-    if save_inner_varvals  == True: 
-
-        var_values = {}
-
-        for s in all_scenario_names:
-            scen = ef.local_scenarios[s]
-            var_values[s] = _extract_results(scen)
-
-    print(var_values)
 
     # ================================================================ Print Investment Decisions
 
@@ -406,18 +377,68 @@ def model_build_solve(
                     print(f"{var_name} = {var_value}")
                     printed.add(var_name)
 
-    return { "form": form,
-             "inv_cost": value(ef_model.Invest),  
-             "expected_shed": value(ef_model.ExpectedShed),
-             "cvar": true_cvar,
-             "gen_inv": gen_inv,
-             "load_inv": load_inv,
-             "trans_inv": trans_inv, 
-             "shed_vals": shed_vals, 
-             "DG_inv": DG_inv, 
-             "extreme_ls_scenarios": extreme_ls_scenarios,
-             "DGcap": DGcap,
-             "scenario_names": all_scenario_names, 
-             "variables": variables, 
-             "ef": ef_model}
+
+    if save_inner_varvals  == True: 
+
+        def _extract_df(var):
+            series = pd.Series(var.extract_values(), name=var.name)
+            df = series.reset_index()
+            df.columns = ["ID", var.name]
+            return df
+
+        def _extract_results(m):
+            scen = getattr(m, "experiment_id", "unknown_scenario")
+
+            flow = _extract_df(m.PowerFlow)
+            mwh = _extract_df(m.PowerGenerated)
+            shed = _extract_df(m.LoadShedding)
+
+            ofv = pd.DataFrame({"Scenario": [scen], "OFV": [value(m.ObjectiveVal)] })
+
+            # tag scen on output
+            for df in [flow, mwh, shed]:
+                df["Scenario"] = scen
+
+            return { "flow": flow, "mwh": mwh, "shed": shed}
+
+
+        var_values = {}
+
+        for s in all_scenario_names:
+            scen = ef.local_scenarios[s]
+            var_values[s] = _extract_results(scen)
+
+
+        return { "form": form,
+                "inv_cost": value(ef_model.Invest),  
+                "expected_shed": value(ef_model.ExpectedShed),
+                "cvar": true_cvar,
+                "gen_inv": gen_inv,
+                "load_inv": load_inv,
+                "trans_inv": trans_inv, 
+                "shed_vals": shed_vals, 
+                "inner_var_vals": var_values,
+                "DG_inv": DG_inv, 
+                "extreme_ls_scenarios": extreme_ls_scenarios,
+                "DGcap": DGcap,
+                "scenario_names": all_scenario_names, 
+                "variables": variables, 
+                "ef": ef_model}
+    else:
+        return { "form": form,
+                "inv_cost": value(ef_model.Invest),  
+                "expected_shed": value(ef_model.ExpectedShed),
+                "cvar": true_cvar,
+                "gen_inv": gen_inv,
+                "load_inv": load_inv,
+                "trans_inv": trans_inv, 
+                "shed_vals": shed_vals, 
+                "DG_inv": DG_inv, 
+                "extreme_ls_scenarios": extreme_ls_scenarios,
+                "DGcap": DGcap,
+                "scenario_names": all_scenario_names, 
+                "variables": variables, 
+                "ef": ef_model}
+
+
 
