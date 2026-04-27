@@ -34,17 +34,17 @@ def main():
     add_trans_fail = False   
     patch = "patch"   
     print(f"\n{bar}\nExperiment settings:\n{bar}")
-
     
-    forms      = ["cvar_only", "risk_neutral"]
-    crit_modes = ["all", "all_in_polygon"]
-    inv_bgts   = [5, 10, 20, 35, 55]
-    alphas     = [0.75, 0.95]
-    N_trials   = [1, 5, 10]
+    forms      = ["cvar_only"] #, "risk_neutral"]
+    crit_modes = ["all_in_polygon"] #, "all"]
+    inv_bgts   = [5.0] #, 10.0, 20.0, 35.0, 55.0]
+    alphas     = [0.75] #, 0.95]
+    N_trials   = [1] #, 5, 10]
+    lam        = 1.0
     
-    all_rows = []
-
     # ================================================================ Generate damage states
+
+    all_rows = []
 
     for num_trial_files in N_trials:
         # Regenerate damage states with the new number of trials (overwriting cache, since we want to compare across different numbers of trials)
@@ -73,18 +73,22 @@ def main():
                             print(f"\n{bar}\n Running: {label} - {form} - BGT: {bgt} - Crit Mode: {crit_mode} - Alpha: {alpha} - N Trials: {num_trial_files}\n{bar}")
 
                             res = model_build_solve(
-                                form=form,grid=grid, damage_states=ds, crit_assets=crit, alpha=alpha,
+                                form=form,grid=grid, damage_states=ds, crit_assets=crit, 
+                                alpha=alpha, lam=lam,
+                                save_inner_varvals=True, 
                                 add_trans_fail=add_trans_fail,
                                 max_invest=bgt, print_vars=True, time_solve=True)
 
                             run_dir = save_run_results(
                                 res, base_dir=results_dir,
                                 dataset=label,
+                                alpha=alpha, lam=lam,
                                 patch=patch,
                                 n_events=len(event_ids), n_trials=num_trial_files, n_samples=len(res["shed_vals"]), form=form, crit_mode=crit_mode, max_invest=bgt)
                             
                             all_rows.append({
                                 "dataset": label,
+                                "num_trial_files": num_trial_files,
                                 "form": form,
                                 "alpha": alpha,
                                 "max_invest": bgt, 

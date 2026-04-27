@@ -40,7 +40,7 @@ def save_run_results(
         f"crit-{crit_mode}",
         f"form-{form}",
         f"alpha-{alpha}",
-        f"DGcap-{res.get('DGcap', 0.0)}"
+        f"DGcap-{res.get('DGcap', 0.0)}",
         f"lam-{lam}",
         f"gap-{mipgap}",
         f"maxinv-{max_invest if max_invest is not None else 'none'}",

@@ -223,6 +223,7 @@ def model_build_solve(
         alpha:float = 0.99,
         lam:float = 1.0,
         add_DG: bool = False,
+        save_inner_varvals: bool=False, 
         DGcap: float = 0.0,
         add_trans_fail: bool = False,
         max_invest=None,
@@ -357,6 +358,26 @@ def model_build_solve(
                 var_dict[idx] = round(var_val)
         return var_dict
 
+    def _extract_df(var):
+        series = pd.Series(var.extract_values(), name=var.name)
+        df = series.reset_index()
+        df.columns = ["ID", var.name]
+        return df
+
+    def _extract_results(m):
+        scen = getattr(m, "experiment_id", "unknown_scenario")
+
+        flow = _extract_df(m.PowerFlow)
+        mwh = _extract_df(m.PowerGenerated)
+        shed = _extract_df(m.LoadShedding)
+
+        ofv = pd.DataFrame({"Scenario": [scen], "OFV": [value(m.ObjectiveVal)] })
+
+        # tag scen on output
+        for df in [flow, mwh, shed]:
+            df["Scenario"] = scen
+            return { "flow": flow, "mwh": mwh, "shed": shed}
+
     gen_inv, load_inv, trans_inv, DG_inv = {}, {}, {}, {}
     for ((_, var_name), var_value) in variables.items():
         _get_invst_var_dict("GenInvest[", gen_inv, var_name, var_value)
@@ -364,10 +385,15 @@ def model_build_solve(
         _get_invst_var_dict("TransInvest[", trans_inv, var_name, var_value)
         _get_invst_var_dict("DGInvest[", DG_inv, var_name, var_value)
 
+    if save_inner_varvals  == True: 
 
+        var_values = {}
 
+        for s in all_scenario_names:
+            scen = ef.local_scenarios[s]
+            var_values[s] = _extract_results(scen)
 
-    
+    print(var_values)
 
     # ================================================================ Print Investment Decisions
 

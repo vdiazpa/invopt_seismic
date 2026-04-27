@@ -130,9 +130,12 @@ def load_wecc_data_raw(gen_csv:str, bus_csv:str, branch_csv:str, load_csv = None
         elif 345 < bus_data[bus_kv][i] <= 500:
             hardening_cost[bus_data[bus][i]] = 30.8
 
+    import random
+
     for i, gen in gen_data_capex.iterrows():
         cost =  round(gen['capex']*gen['PT']*1000 *(1/1000000)*0.2,5)
-        hardening_cost[gen_data['GEN UID'][i]] = cost  # Change Unit to MW, Scale to millions< multuiply by 0.25 to disaggregate capacity at each unit
+        hardening_cost[gen_data['GEN UID'][i]] = float(random.randint(9, 30))
+  # Change Unit to MW, Scale to millions< multuiply by 0.25 to disaggregate capacity at each unit
 
     # for g in range(len(gens)): 
     #     if gen_data['PT'][g] <= 200:
